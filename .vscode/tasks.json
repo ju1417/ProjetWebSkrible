@@ -1,0 +1,24 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Start Frontend",
+            "type": "shell",
+            "command": "cd fronted; deno run --allow-read --allow-net --allow-env --watch server.ts",
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "Start Backend",
+            "type": "shell", 
+            "command": "cd backend/config; deno run --allow-read --allow-net --allow-env --allow-write --watch server.ts",
+            "isBackground": true,
+            "problemMatcher": []
+        },
+        {
+            "label": "Start All",
+            "dependsOn": ["Start Frontend", "Start Backend"],
+            "problemMatcher": []
+        }
+    ]
+}

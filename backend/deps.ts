@@ -11,7 +11,7 @@ export {
    export { oakCors } from "https://deno.land/x/cors@v1.2.2/mod.ts";
    
    // SQLite pour la base de données
-   export { DB } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
+   export { Pool, PoolClient } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
    
    // Bcrypt pour le hachage des mots de passe
    export * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
@@ -45,4 +45,3 @@ export {
    // WebSocket pour la communication en temps réel
    export { serve as WebSocketServer } from "https://deno.land/std@0.206.0/http/server.ts";
    
-   // Nous utiliserons directement Deno.upgradeWebSocket dans server.ts
