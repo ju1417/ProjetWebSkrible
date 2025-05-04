@@ -398,3 +398,113 @@ body:has(.game-container) .game-container {
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
+
+/* Animations */
+@keyframes scorePopup {
+    0% {
+        transform: scale(0.5) translateY(0);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.2) translateY(-20px);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1) translateY(-40px);
+        opacity: 0;
+    }
+}
+
+@keyframes correctAnswer {
+    0% {
+        transform: scale(1);
+        background-color: #d4edda;
+    }
+    50% {
+        transform: scale(1.05);
+        background-color: #28a745;
+        color: white;
+    }
+    100% {
+        transform: scale(1);
+        background-color: #d4edda;
+    }
+}
+
+@keyframes newMessage {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes timerWarning {
+    0%, 100% {
+        color: #721c24;
+        transform: scale(1);
+    }
+    50% {
+        color: #ff0000;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes roundChange {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    20% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    80% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+/* Classes pour les animations */
+.score-popup {
+    position: absolute;
+    font-size: 24px;
+    font-weight: bold;
+    color: #28a745;
+    animation: scorePopup 1.5s ease-out forwards;
+    pointer-events: none;
+}
+
+.correct-answer-flash {
+    animation: correctAnswer 1s ease-in-out;
+}
+
+.new-message {
+    animation: newMessage 0.3s ease-out;
+}
+
+.timer-warning {
+    animation: timerWarning 1s infinite;
+}
+
+.round-announcement {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    font-weight: bold;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 20px 40px;
+    border-radius: 10px;
+    animation: roundChange 3s ease-in-out forwards;
+    z-index: 1000;
+}

@@ -334,6 +334,13 @@ function updateTimer(timeLeft) {
     const timerElement = document.getElementById('timer');
     if (timerElement) {
         timerElement.textContent = timeLeft;
+        
+        // Animation d'urgence quand il reste peu de temps
+        if (timeLeft <= 10) {
+            timerElement.classList.add('timer-warning');
+        } else {
+            timerElement.classList.remove('timer-warning');
+        }
     }
 }
 
@@ -386,16 +393,39 @@ function enableDrawing(enabled) {
 
 // Fonction pour gérer une bonne réponse
 function handleCorrectGuess(data) {
-    addChatMessage('Système', `${data.winner} a trouvé le mot : ${data.word}!`);
+    // Animation du message
+    const systemMessage = document.createElement('div');
+    systemMessage.className = 'new-message correct-answer-flash';
+    systemMessage.innerHTML = `<strong>Système:</strong> ${data.winner} a trouvé le mot : ${data.word}!`;
+    
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.appendChild(systemMessage);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Animation des scores
     if (data.scores) {
         updatePlayersList(data.scores);
+        
+        // Trouver le joueur gagnant et animer son score
+        const playerElements = document.querySelectorAll('.player-item');
+        playerElements.forEach(element => {
+            if (element.querySelector('strong').textContent === data.winner) {
+                showScoreAnimation(element, 100);
+            }
+        });
     }
 }
 
 // Fonction pour gérer la fin d'un round
 function handleRoundEnd(data) {
-    addChatMessage('Système', `Le mot était : ${data.word}`);
-    updatePlayersList(data.scores);
+    showRoundAnnouncement(`Le mot était : ${data.word}`);
+    
+    setTimeout(() => {
+        addChatMessage('Système', `Round terminé ! Le mot était : ${data.word}`);
+        if (data.scores) {
+            updatePlayersList(data.scores);
+        }
+    }, 1000);
 }
 
 // Fonctions du chat
@@ -441,21 +471,30 @@ function startNewRound(data) {
         isDrawer = true;
         enableDrawing(true);
         displayWordForDrawer(data.word);
-        addChatMessage('Système', `C'est votre tour de dessiner : ${data.word}`);
+        showRoundAnnouncement(`C'est votre tour de dessiner !`);
+        
+        setTimeout(() => {
+            addChatMessage('Système', `Dessinez : ${data.word}`);
+        }, 3000);
     } else {
         isDrawer = false;
         enableDrawing(false);
         displayWordHint(data.wordHint);
-        addChatMessage('Système', `${data.drawer} dessine...`);
+        showRoundAnnouncement(`${data.drawer} dessine !`);
+        
+        setTimeout(() => {
+            addChatMessage('Système', `${data.drawer} est en train de dessiner...`);
+        }, 3000);
     }
 }
-
 
 // Fonction pour ajouter un chat
 function addChatMessage(username, message) {
     const chatMessages = document.getElementById('chat-messages');
     const messageElement = document.createElement('div');
+    messageElement.className = 'new-message'; // Ajouter la classe d'animation
     messageElement.innerHTML = `<strong>${username}:</strong> ${message}`;
+    
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
@@ -530,3 +569,35 @@ window.addEventListener('resize', () => {
     clearTimeout(window.resizeTimeout);
     window.resizeTimeout = setTimeout(resizeCanvas, 250);
 }); 
+
+// Animation quand quelqu'un trouve le mot
+function showScoreAnimation(playerElement, points) {
+    const scorePopup = document.createElement('div');
+    scorePopup.className = 'score-popup';
+    scorePopup.textContent = `+${points}`;
+    
+    // Positionner l'animation près du joueur
+    const rect = playerElement.getBoundingClientRect();
+    scorePopup.style.left = rect.left + rect.width / 2 + 'px';
+    scorePopup.style.top = rect.top + 'px';
+    
+    document.body.appendChild(scorePopup);
+    
+    // Supprimer après l'animation
+    setTimeout(() => {
+        scorePopup.remove();
+    }, 1500);
+}
+
+// Animation pour le changement de round
+function showRoundAnnouncement(text) {
+    const announcement = document.createElement('div');
+    announcement.className = 'round-announcement';
+    announcement.textContent = text;
+    
+    document.body.appendChild(announcement);
+    
+    setTimeout(() => {
+        announcement.remove();
+    }, 3000);
+}
