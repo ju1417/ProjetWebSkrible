@@ -29,6 +29,11 @@ let ws = null;
 let myUsername = '';
 let isDrawer = false;
 
+// Ajouter aux variables globales existantes
+let totalRounds = 3; // Valeur par défaut
+let currentRound = 0;
+let isGameCreator = false; // Pour identifier le premier joueur qui crée la partie
+
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
     initCanvas();
@@ -36,6 +41,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Demander le nom d'utilisateur
     myUsername = prompt('Entrez votre nom d\'utilisateur:') || 'Joueur' + Math.floor(Math.random() * 1000);
+    
+    // Demander le nombre de rounds seulement au premier joueur
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomId = urlParams.get('room');
+    
+    if (!roomId) {
+        // C'est un nouveau jeu, donc le joueur est le créateur
+        isGameCreator = true;
+        totalRounds = parseInt(prompt('Nombre de rounds (entre 1 et 10):', '3')) || 3;
+        // S'assurer que le nombre est dans une plage valide
+        totalRounds = Math.max(1, Math.min(10, totalRounds));
+    }
     
     // Se connecter au WebSocket
     connectWebSocket();
@@ -50,10 +67,12 @@ function connectWebSocket() {
         // Envoyer un message pour rejoindre le jeu
         ws.send(JSON.stringify({
             type: 'join',
-            username: myUsername
+            username: myUsername,
+            isGameCreator: isGameCreator,
+            totalRounds: isGameCreator ? totalRounds : undefined
         }));
     };
-    
+
     ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
         handleServerMessage(message);
@@ -72,6 +91,9 @@ function connectWebSocket() {
 
 // Gestionnaire des messages du serveur
 function handleServerMessage(message) {
+    // Déboguer: afficher tous les messages reçus
+    console.log('Message reçu du serveur:', message);
+    
     switch(message.type) {
         case 'gameState':
             updateGameState(message);
@@ -100,6 +122,11 @@ function handleServerMessage(message) {
         case 'roundEnd':
             handleRoundEnd(message);
             break;
+        case 'gameOver':
+            showGameOver(message.finalScores);
+            break;
+        default:
+            console.log('Type de message non géré:', message.type);
     }
 }
 
@@ -418,12 +445,21 @@ function handleCorrectGuess(data) {
 
 // Fonction pour gérer la fin d'un round
 function handleRoundEnd(data) {
+    console.log("Fin du round reçue:", data);
+    
     showRoundAnnouncement(`Le mot était : ${data.word}`);
     
     setTimeout(() => {
-        addChatMessage('Système', `Round terminé ! Le mot était : ${data.word}`);
+        addChatMessage('Système', `Round terminé ! Le mot était : ${data.word}`, true);
+        
         if (data.scores) {
             updatePlayersList(data.scores);
+        }
+        
+        // Vérifier si c'est la fin du jeu
+        if (data.isGameOver) {
+            console.log("Jeu terminé, affichage des scores finaux");
+            showGameOver(data.scores || data.finalScores);
         }
     }, 1000);
 }
@@ -454,24 +490,47 @@ function sendMessage() {
 
 // Fonction pour mettre à jour l'état du jeu
 function updateGameState(state) {
-    // Mettre à jour la liste des joueurs
-    updatePlayersList(state.players);
+    console.log("Mise à jour de l'état du jeu:", state);
+    
+    // Mettre à jour la liste des joueurs si disponible
+    if (state.players) {
+        // Mettre à jour notre variable locale des joueurs
+        players = state.players;
+        
+        // Mettre à jour l'affichage
+        updatePlayersList();
+    }
     
     // Mettre à jour le timer
-    if (state.timeLeft) {
+    if (state.timeLeft !== undefined) {
         updateTimer(state.timeLeft);
     }
+    
+    // Mettre à jour les informations de round
+    if (state.currentRound !== undefined && state.totalRounds !== undefined) {
+        document.getElementById('round-info').textContent = 
+            `Round ${state.currentRound}/${state.totalRounds}`;
+    }
+    
+    // Autres mises à jour d'état si nécessaire
 }
 
 // Fonction pour démarrer un nouveau round
 function startNewRound(data) {
     clearCanvas();
     
+    // Mettre à jour l'indicateur de round
+    currentRound = data.currentRound || currentRound;
+    totalRounds = data.totalRounds || totalRounds;
+    
+    // Afficher l'information sur les rounds
+    document.getElementById('round-info').textContent = `Round ${currentRound}/${totalRounds}`;
+    
     if (data.role === 'drawer') {
         isDrawer = true;
         enableDrawing(true);
         displayWordForDrawer(data.word);
-        showRoundAnnouncement(`C'est votre tour de dessiner !`);
+        showRoundAnnouncement(`C'est votre tour de dessiner ! (Round ${currentRound}/${totalRounds})`);
         
         setTimeout(() => {
             addChatMessage('Système', `Dessinez : ${data.word}`);
@@ -480,11 +539,16 @@ function startNewRound(data) {
         isDrawer = false;
         enableDrawing(false);
         displayWordHint(data.wordHint);
-        showRoundAnnouncement(`${data.drawer} dessine !`);
+        showRoundAnnouncement(`${data.drawer} dessine ! (Round ${currentRound}/${totalRounds})`);
         
         setTimeout(() => {
             addChatMessage('Système', `${data.drawer} est en train de dessiner...`);
         }, 3000);
+    }
+    
+    // Vérifier si c'est le dernier round
+    if (currentRound === totalRounds && data.isLastPlayer) {
+        addChatMessage('Système', 'Dernier round de la partie !');
     }
 }
 
@@ -504,16 +568,20 @@ function updatePlayersList(serverPlayers = null) {
     const playersContainer = document.getElementById('players-container');
     playersContainer.innerHTML = '';
     
-    // Utiliser les joueurs du serveur si disponibles
+    // Utiliser les joueurs du serveur si disponibles, sinon utiliser la variable locale
     const playersToDisplay = serverPlayers || players;
     
+    // Déboguer: afficher les joueurs dans la console
+    console.log('Mise à jour de la liste des joueurs:', playersToDisplay);
+    
+    // Afficher chaque joueur
     playersToDisplay.forEach(player => {
         const playerElement = document.createElement('div');
         playerElement.className = 'player-item';
         playerElement.style.marginBottom = '10px';
         playerElement.innerHTML = `
             <strong>${player.username}</strong>
-            <span style="float: right;">${player.score} pts</span>
+            <span style="float: right;">${player.score || 0} pts</span>
             ${player.isDrawing ? '<span style="color: green;"> (Dessine)</span>' : ''}
         `;
         playersContainer.appendChild(playerElement);
@@ -600,4 +668,159 @@ function showRoundAnnouncement(text) {
     setTimeout(() => {
         announcement.remove();
     }, 3000);
+}
+
+// Nouvelle fonction pour afficher la fin du jeu
+function showGameOver(finalScores) {
+    // Trier les scores par ordre décroissant
+    const sortedScores = [...finalScores].sort((a, b) => b.score - a.score);
+    const winner = sortedScores[0];
+    
+    const gameOverAnnouncement = document.createElement('div');
+    gameOverAnnouncement.className = 'game-over-announcement';
+    gameOverAnnouncement.innerHTML = `
+        <h2>Fin de la partie!</h2>
+        <h3>${winner.username} gagne avec ${winner.score} points!</h3>
+        <div class="final-scores">
+            <h4>Scores finaux:</h4>
+            <ul>
+                ${sortedScores.map(player => `<li>${player.username}: ${player.score} points</li>`).join('')}
+            </ul>
+        </div>
+        <button id="new-game-btn">Nouvelle Partie</button>
+    `;
+    
+    document.body.appendChild(gameOverAnnouncement);
+    
+    // Ajouter l'écouteur pour le bouton nouvelle partie
+    document.getElementById('new-game-btn').addEventListener('click', () => {
+        location.reload();
+    });
+}
+function endGame() {
+    gameRoom.gameState = 'waiting';
+    gameRoom.currentWord = null;
+    gameRoom.currentDrawer = null;
+    
+    // Envoyer les scores finaux
+    broadcastMessage({
+      type: 'gameOver',
+      finalScores: Array.from(gameRoom.players.values())
+    });
+    
+    // Réinitialiser le jeu après un délai
+    setTimeout(() => {
+      gameRoom.currentRound = 0;
+      
+      // Si le créateur est toujours là, le jeu peut redémarrer automatiquement avec le nombre de rounds défini
+      if (gameRoom.players.size >= 2 && 
+          gameRoom.gameCreator && 
+          gameRoom.players.has(gameRoom.gameCreator)) {
+        startNewRound();
+      }
+    }, 10000); // 10 secondes avant de potentiellement recommencer
+  }
+
+// Fonction pour ajouter un joueur
+function addPlayer(player) {
+    // Ajouter le joueur à notre tableau local de joueurs
+    // Vérifier d'abord si le joueur existe déjà pour éviter les doublons
+    const existingPlayerIndex = players.findIndex(p => p.username === player.username);
+    
+    if (existingPlayerIndex === -1) {
+        // Si le joueur n'existe pas, l'ajouter à notre tableau
+        players.push(player);
+    } else {
+        // Si le joueur existe déjà, mettre à jour ses informations
+        players[existingPlayerIndex] = player;
+    }
+    
+    // Mettre à jour l'affichage des joueurs
+    updatePlayersList();
+    
+    // Afficher un message dans le chat
+    addChatMessage('Système', `${player.username} a rejoint la partie.`);
+}
+
+// Fonction pour supprimer un joueur
+function removePlayer(playerId) {
+    // Trouver l'index du joueur à supprimer
+    const playerIndex = players.findIndex(p => p.id === playerId);
+    
+    if (playerIndex !== -1) {
+        // Récupérer le nom du joueur avant de le supprimer
+        const playerName = players[playerIndex].username;
+        
+        // Supprimer le joueur du tableau
+        players.splice(playerIndex, 1);
+        
+        // Mettre à jour l'affichage
+        updatePlayersList();
+        
+        // Afficher un message dans le chat
+        addChatMessage('Système', `${playerName} a quitté la partie.`);
+    }
+}
+
+// Fonction pour afficher la fin du jeu
+function showGameOver(finalScores) {
+    console.log("Affichage de la fin de partie avec scores:", finalScores);
+    
+    // Supprimer toute annonce précédente si elle existe
+    const existingAnnouncement = document.querySelector('.game-over-announcement');
+    if (existingAnnouncement) {
+        existingAnnouncement.remove();
+    }
+    
+    // Trier les scores par ordre décroissant
+    const sortedScores = [...finalScores].sort((a, b) => b.score - a.score);
+    const winner = sortedScores[0];
+    
+    // Créer l'élément d'annonce
+    const gameOverAnnouncement = document.createElement('div');
+    gameOverAnnouncement.className = 'game-over-announcement';
+    gameOverAnnouncement.style.position = 'fixed';
+    gameOverAnnouncement.style.top = '50%';
+    gameOverAnnouncement.style.left = '50%';
+    gameOverAnnouncement.style.transform = 'translate(-50%, -50%)';
+    gameOverAnnouncement.style.backgroundColor = 'white';
+    gameOverAnnouncement.style.padding = '20px';
+    gameOverAnnouncement.style.borderRadius = '10px';
+    gameOverAnnouncement.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
+    gameOverAnnouncement.style.zIndex = '1000';
+    gameOverAnnouncement.style.textAlign = 'center';
+    
+    // Contenu de l'annonce
+    gameOverAnnouncement.innerHTML = `
+        <h2>Fin de la partie!</h2>
+        <h3>${winner.username} gagne avec ${winner.score} points!</h3>
+        <div class="final-scores">
+            <h4>Scores finaux:</h4>
+            <ul style="list-style: none; padding: 0;">
+                ${sortedScores.map(player => `<li>${player.username}: ${player.score} points</li>`).join('')}
+            </ul>
+        </div>
+        <button id="new-game-btn" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Nouvelle Partie</button>
+    `;
+    
+    // Ajouter l'annonce au DOM
+    document.body.appendChild(gameOverAnnouncement);
+    
+    // Ajouter l'écouteur d'événements au bouton
+    document.getElementById('new-game-btn').addEventListener('click', function() {
+        console.log("Bouton Nouvelle Partie cliqué");
+        
+        // Envoyer un message au serveur pour relancer la partie
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'restartGame'
+            }));
+            console.log("Message restartGame envoyé au serveur");
+        } else {
+            console.error("WebSocket non connecté, impossible d'envoyer la demande de redémarrage");
+        }
+        
+        // Supprimer l'annonce
+        gameOverAnnouncement.remove();
+    });
 }

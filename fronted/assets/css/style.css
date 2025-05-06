@@ -508,3 +508,42 @@ body:has(.game-container) .game-container {
     animation: roundChange 3s ease-in-out forwards;
     z-index: 1000;
 }
+
+.game-over-announcement {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.95);
+    border: 2px solid #333;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    z-index: 1000;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.game-over-announcement h2 {
+    color: #e74c3c;
+    margin-top: 0;
+}
+
+.game-over-announcement .final-scores {
+    margin: 20px 0;
+    text-align: left;
+}
+
+.game-over-announcement button {
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 10px;
+}
+
+.game-over-announcement button:hover {
+    background-color: #27ae60;
+}

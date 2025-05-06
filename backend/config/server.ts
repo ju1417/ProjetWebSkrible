@@ -27,12 +27,17 @@ interface Player {
 }
 
 interface GameRoom {
+  // Propriétés pour le jeu
   players: Map<string, Player>;
   currentWord: string | null;
   currentDrawer: string | null;
   gameState: 'waiting' | 'playing' | 'roundEnd';
   timeLeft: number;
   timerInterval?: number;
+  // Propriétés pour les rounds
+  totalRounds: number;
+  currentRound: number;
+  gameCreator: string | null;
 }
 
 // Variables globales pour le jeu
@@ -41,7 +46,10 @@ const gameRoom: GameRoom = {
   currentWord: null,
   currentDrawer: null,
   gameState: 'waiting',
-  timeLeft: 60
+  timeLeft: 60,
+  totalRounds: 2, // Valeur par défaut
+  currentRound: 0,
+  gameCreator: null
 };
 
 const connectedClients = new Map<WebSocket, Player>();
@@ -145,7 +153,12 @@ async function handleWS(req: Request) {
       
       switch(message.type) {
         case 'join':
-          handlePlayerJoin(socket, message.username);
+          handlePlayerJoin(
+            socket, 
+            message.username, 
+            message.isGameCreator || false, 
+            message.totalRounds
+          );
           break;
           
         case 'chat':
@@ -163,6 +176,21 @@ async function handleWS(req: Request) {
         case 'clearCanvas':
           broadcastMessage({ type: 'clearCanvas' }, socket);
           break;
+        
+        case 'restartGame':
+          handleRestartGame(socket);
+          break;
+        
+        case 'gameRestarting':
+          addChatMessage('Système', message.message, true);
+          // Mettre à jour l'interface utilisateur pour la nouvelle partie
+          clearCanvas();
+          updatePlayersList(message.players);
+          break;
+        case 'RestartGame':
+          handleRestartGame(socket);
+          break;
+
       }
     } catch (err) {
       console.error("Erreur traitement message:", err);
@@ -180,8 +208,31 @@ async function handleWS(req: Request) {
   return response;
 }
 
-// Fonctions de gestion du jeu
-function handlePlayerJoin(socket: WebSocket, username: string) {
+function handlePlayerLeave(socket: WebSocket) {
+  const player = connectedClients.get(socket);
+  if (!player) return;
+  
+  // Supprimer le joueur des clients connectés
+  connectedClients.delete(socket);
+  
+  // Supprimer le joueur de la salle de jeu
+  gameRoom.players.delete(player.id);
+  
+  // Notifier les autres joueurs
+  broadcastMessage({
+    type: 'playerLeft',
+    playerId: player.id
+  });
+  
+  // Si le joueur était le dessinateur, terminer le round
+  if (player.isDrawing) {
+    endRound();
+  }
+  
+  console.log(`Joueur déconnecté: ${player.username}`);
+}
+
+function handlePlayerJoin(socket: WebSocket, username: string, isGameCreator: boolean = false, totalRounds?: number) {
   const playerId = crypto.randomUUID();
   const player: Player = {
     id: playerId,
@@ -193,14 +244,27 @@ function handlePlayerJoin(socket: WebSocket, username: string) {
   connectedClients.set(socket, player);
   gameRoom.players.set(playerId, player);
   
-  // Envoyer l'état actuel au nouveau joueur
+  // Si c'est le premier joueur, il devient le créateur du jeu
+  if (gameRoom.players.size === 1 || isGameCreator) {
+    gameRoom.gameCreator = playerId;
+    
+    // Si le créateur spécifie un nombre de rounds, l'utiliser
+    if (totalRounds && totalRounds > 0) {
+      gameRoom.totalRounds = totalRounds;
+    }
+  }
+  
+  // Envoyer l'état actuel au nouveau joueur avec les infos de rounds
   socket.send(JSON.stringify({
     type: 'gameState',
     players: Array.from(gameRoom.players.values()),
     currentWord: player.isDrawing ? gameRoom.currentWord : null,
     currentDrawer: gameRoom.currentDrawer,
     gameState: gameRoom.gameState,
-    timeLeft: gameRoom.timeLeft
+    timeLeft: gameRoom.timeLeft,
+    // Nouvelles informations
+    totalRounds: gameRoom.totalRounds,
+    currentRound: gameRoom.currentRound
   }));
   
   // Notifier les autres joueurs
@@ -211,24 +275,6 @@ function handlePlayerJoin(socket: WebSocket, username: string) {
   
   // Démarrer le jeu si assez de joueurs
   checkAndStartGame();
-}
-
-function handlePlayerLeave(socket: WebSocket) {
-  const player = connectedClients.get(socket);
-  if (player) {
-    gameRoom.players.delete(player.id);
-    connectedClients.delete(socket);
-    
-    broadcastMessage({
-      type: 'playerLeft',
-      playerId: player.id
-    });
-    
-    // Si le joueur qui part était en train de dessiner, passer au tour suivant
-    if (player.id === gameRoom.currentDrawer) {
-      endRound();
-    }
-  }
 }
 
 function handleChatMessage(socket: WebSocket, content: string) {
@@ -280,10 +326,55 @@ function broadcastMessage(message: any, excludeSocket?: WebSocket) {
   });
 }
 
+function endGame() {
+  if (gameRoom.timerInterval) {
+    clearInterval(gameRoom.timerInterval);
+  }
+  
+  gameRoom.gameState = 'waiting';
+  gameRoom.currentWord = null;
+  gameRoom.currentDrawer = null;
+  
+  // Envoyer les scores finaux
+  broadcastMessage({
+    type: 'gameOver',
+    finalScores: Array.from(gameRoom.players.values())
+  });
+  
+  // Réinitialiser le jeu après un délai
+  setTimeout(() => {
+    gameRoom.currentRound = 0;
+    
+    // Si le créateur est toujours là, le jeu peut redémarrer automatiquement avec le nombre de rounds défini
+    if (gameRoom.players.size >= 2 && 
+        gameRoom.gameCreator && 
+        gameRoom.players.has(gameRoom.gameCreator)) {
+      startNewRound();
+    }
+  }, 10000); // 10 secondes avant de potentiellement recommencer
+}
+
 async function startNewRound() {
+  // Vérifier qu'il y a au moins 2 joueurs
+  if (gameRoom.players.size < 2) {
+    gameRoom.gameState = 'waiting';
+    gameRoom.currentWord = null;
+    gameRoom.currentDrawer = null;
+    broadcastMessage({
+      type: 'waitingForPlayers'
+    });
+    return;
+  }
+  
+  // Vérifier si nous avons atteint le nombre maximal de rounds
+  if (gameRoom.currentRound > gameRoom.totalRounds) {
+    // Fin du jeu
+    endGame();
+    return;
+  }
+  
   // Choisir un joueur au hasard pour dessiner
   const players = Array.from(gameRoom.players.values());
-  if (players.length < 2) return;
   
   // Trouver l'index du dessinateur actuel
   let currentIndex = -1;
@@ -309,6 +400,10 @@ async function startNewRound() {
     gameRoom.gameState = 'playing';
     gameRoom.timeLeft = 60;
     
+    // Vérifier si c'est le dernier joueur du dernier round
+    const isLastPlayer = gameRoom.currentRound === gameRoom.totalRounds && 
+                        nextIndex === players.length - 1;
+    
     // Envoyer l'état du jeu à tous les joueurs
     connectedClients.forEach((player, socket) => {
       if (player.id === drawer.id) {
@@ -317,7 +412,12 @@ async function startNewRound() {
           type: 'newRound',
           role: 'drawer',
           word: gameRoom.currentWord,
-          timeLeft: gameRoom.timeLeft
+          timeLeft: gameRoom.timeLeft,
+          // Informations de round
+          currentRound: gameRoom.currentRound,
+          totalRounds: gameRoom.totalRounds,
+          isLastPlayer,
+          players: Array.from(gameRoom.players.values()) // Ajouter la liste des joueurs
         }));
       } else {
         // Les autres voient des tirets
@@ -326,7 +426,12 @@ async function startNewRound() {
           role: 'guesser',
           wordHint: gameRoom.currentWord.replace(/[^ ]/g, '_'),
           timeLeft: gameRoom.timeLeft,
-          drawer: drawer.username
+          drawer: drawer.username,
+          // Informations de round
+          currentRound: gameRoom.currentRound,
+          totalRounds: gameRoom.totalRounds,
+          isLastPlayer,
+          players: Array.from(gameRoom.players.values()) // Ajouter la liste des joueurs
         }));
       }
     });
@@ -364,29 +469,63 @@ function endRound() {
   
   gameRoom.gameState = 'roundEnd';
   
+  // Vérifier si tous les joueurs ont eu leur tour dans ce round
+  const players = Array.from(gameRoom.players.values());
+  const currentIndex = players.findIndex(p => p.id === gameRoom.currentDrawer);
+  const isLastPlayerOfRound = currentIndex === players.length - 1;
+  const isLastRound = gameRoom.currentRound >= gameRoom.totalRounds;
+  
+  // Informer les joueurs de la fin du round
   broadcastMessage({
     type: 'roundEnd',
     word: gameRoom.currentWord,
-    scores: Array.from(gameRoom.players.values())
+    scores: Array.from(gameRoom.players.values()),
+    isGameOver: isLastPlayerOfRound && isLastRound,
+    isLastPlayerOfRound: isLastPlayerOfRound
   });
   
   // Démarrer un nouveau round après 5 secondes
   setTimeout(() => {
-    if (gameRoom.players.size >= 2) {
-      startNewRound();
-    } else {
+    // S'assurer qu'il y a au moins 2 joueurs
+    if (gameRoom.players.size < 2) {
       gameRoom.gameState = 'waiting';
       gameRoom.currentWord = null;
       gameRoom.currentDrawer = null;
+      broadcastMessage({
+        type: 'waitingForPlayers'
+      });
+      return;
+    }
+    
+    if (isLastPlayerOfRound && isLastRound) {
+      // Si c'est la fin du jeu, terminer le jeu
+      endGame();
+    } else if (isLastPlayerOfRound) {
+      // Si c'est le dernier joueur du round, incrémenter le compteur de rounds
+      gameRoom.currentRound++;
+      startNewRound();
+    } else {
+      // Sinon, passer au joueur suivant dans le même round
+      startNewRound();
     }
   }, 5000);
 }
 
 function checkAndStartGame() {
   if (gameRoom.players.size >= 2 && gameRoom.gameState === 'waiting') {
+    // Réinitialiser le compteur de rounds au début du jeu
+    gameRoom.currentRound = 1; 
+    
+    // Informer les joueurs que le jeu va commencer
+    broadcastMessage({
+      type: 'gameStarting',
+      message: 'Le jeu commence dans 3 secondes...',
+      players: Array.from(gameRoom.players.values())
+    });
+    
     setTimeout(() => {
       startNewRound();
-    }, 2000);
+    }, 3000);
   }
 }
 
@@ -397,8 +536,43 @@ app.use(notFoundHandler);
 
 // Démarrer les serveurs
 app.addEventListener("listen", () => {
-  serve(handleWS, { port: WS_PORT });
-  console.log(`HTTP: http://localhost:${PORT} | WS: ws://localhost:${WS_PORT}`);
+  console.log(`Serveur HTTP démarré sur http://localhost:${PORT}`);
 });
 
+// Lancer le serveur WebSocket séparément
+console.log(`Démarrage du serveur WebSocket sur ws://localhost:${WS_PORT}`);
+serve(handleWS, { port: WS_PORT });
+
+// Lancer le serveur HTTP
 await app.listen({ port: PORT });
+
+
+// Fonction pour gérer le redémarrage du jeu
+function handleRestartGame(socket: WebSocket) {
+    const player = connectedClients.get(socket);
+    if (!player) return;
+    
+    console.log(`Demande de redémarrage reçue de ${player.username}`);
+    
+    // Réinitialiser les scores des joueurs
+    gameRoom.players.forEach(p => {
+        p.score = 0;
+        p.isDrawing = false;
+    });
+    
+    // Réinitialiser le compteur de rounds
+    gameRoom.currentRound = 0;
+    gameRoom.gameState = 'waiting';
+    
+    // Informer tous les joueurs du redémarrage
+    broadcastMessage({
+        type: 'gameRestarting',
+        message: 'La partie redémarre...',
+        players: Array.from(gameRoom.players.values())
+    });
+    
+    // Démarrer un nouveau jeu
+    setTimeout(() => {
+        checkAndStartGame();
+    }, 2000);
+}
