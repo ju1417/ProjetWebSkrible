@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skribble - Tableau de bord</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+</head>
+<body>
+    <header>
+        <h1>Skribble</h1>
+        <nav id="main-nav">
+            <div class="user-info">
+                <span id="username-display">Connecté en tant que: <strong id="user-name"></strong></span>
+                <button id="logout-btn" class="btn-secondary">Déconnexion</button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="dashboard-container">
+        <!-- Section Nouvelle Partie -->
+        <section class="game-section">
+            <h2>🎮 Commencer une partie</h2>
+            <div class="game-options">
+                <div class="option-group">
+                    <label for="rounds-select">Nombre de rounds :</label>
+                    <select id="rounds-select">
+                        <option value="2">2 rounds</option>
+                        <option value="3" selected>3 rounds</option>
+                        <option value="5">5 rounds</option>
+                        <option value="10">10 rounds</option>
+                    </select>
+                </div>
+                
+                <div class="option-group">
+                    <label for="time-select">Temps par round :</label>
+                    <select id="time-select">
+                        <option value="60" selected>60 secondes</option>
+                        <option value="90">90 secondes</option>
+                        <option value="120">120 secondes</option>
+                    </select>
+                </div>
+                
+                <button id="start-game-btn" class="btn-primary">
+                    🚀 Lancer une nouvelle partie
+                </button>
+            </div>
+        </section>
+
+        <!-- Section Rejoindre une partie -->
+        <section class="join-section">
+            <h2>👥 Rejoindre une partie</h2>
+            <div class="join-options">
+                <input type="text" id="room-code" placeholder="Code de la salle (optionnel)">
+                <button id="join-game-btn" class="btn-secondary">
+                    Rejoindre une partie existante
+                </button>
+            </div>
+        </section>
+
+        <!-- Section Statistiques -->
+        <section class="stats-section">
+            <h2>📊 Vos statistiques</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Parties jouées</h3>
+                    <span class="stat-value" id="games-played">-</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Meilleur score</h3>
+                    <span class="stat-value" id="best-score">-</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Mots trouvés</h3>
+                    <span class="stat-value" id="words-guessed">-</span>
+                </div>
+                <div class="stat-card">
+                    <h3>Taux de victoire</h3>
+                    <span class="stat-value" id="win-rate">-%</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Historique -->
+        <section class="history-section">
+            <h2>📜 Dernières parties</h2>
+            <div id="recent-games" class="games-history">
+                <p class="loading">Chargement de l'historique...</p>
+            </div>
+            <button id="view-all-history" class="btn-secondary">Voir tout l'historique</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 - Skribble</p>
+    </footer>
+
+    <script src="assets/js/dashboard.js"></script>
+</body>
+</html>

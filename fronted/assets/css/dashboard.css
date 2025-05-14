@@ -1,0 +1,432 @@
+/* dashboard.css - Styles spécifiques pour le dashboard */
+
+/* Layout principal */
+.dashboard-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-gap: 30px;
+}
+
+/* Header modifications */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: white;
+}
+
+.user-info #username-display {
+    font-size: 16px;
+}
+
+.user-info #user-name {
+    color: #ffd700;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+    transform: translateY(-1px);
+}
+
+/* Sections principales */
+.game-section,
+.stats-section,
+.history-section,
+.join-section {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.game-section:hover,
+.stats-section:hover,
+.history-section:hover,
+.join-section:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+}
+
+/* Section Nouvelle Partie */
+.game-section {
+    grid-column: 1 / -1;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-align: center;
+}
+
+.game-section h2 {
+    color: white;
+    margin-bottom: 25px;
+    font-size: 28px;
+}
+
+/* Options de jeu */
+.game-options {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.option-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+}
+
+.option-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #f8f9fa;
+}
+
+.option-group select {
+    padding: 10px 15px;
+    border: 2px solid #fff;
+    border-radius: 8px;
+    background: white;
+    color: #333;
+    font-size: 16px;
+    min-width: 150px;
+    transition: all 0.3s ease;
+}
+
+.option-group select:focus {
+    outline: none;
+    border-color: #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.btn-primary {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+}
+
+.btn-primary:hover {
+    background-color: #218838;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+/* Section Rejoindre */
+.join-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.join-options {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.join-options input {
+    flex: 1;
+    min-width: 200px;
+    padding: 12px 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.join-options input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.2);
+}
+
+/* Statistiques */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 25px;
+    border-radius: 10px;
+    text-align: center;
+    border-left: 5px solid #007bff;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #007bff, #6610f2);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover::before {
+    transform: scaleX(1);
+}
+
+.stat-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.stat-card h3 {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: bold;
+    color: #007bff;
+    display: block;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Historique des parties */
+.games-history {
+    max-height: 350px;
+    overflow-y: auto;
+    margin-top: 20px;
+    padding-right: 10px;
+}
+
+.games-history::-webkit-scrollbar {
+    width: 5px;
+}
+
+.games-history::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.games-history::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.games-history::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.game-history-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto 1fr;
+    align-items: center;
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+}
+
+.game-history-item:hover {
+    background-color: #e9ecef;
+    border-left-color: #007bff;
+    transform: translateX(5px);
+}
+
+.game-date {
+    font-weight: 600;
+    color: #333;
+    font-size: 14px;
+}
+
+.game-score {
+    font-weight: bold;
+    color: #007bff;
+    font-size: 16px;
+}
+
+.game-position {
+    font-size: 20px;
+    font-weight: bold;
+    padding: 8px 12px;
+    border-radius: 20px;
+    min-width: 50px;
+    text-align: center;
+}
+
+.first-place {
+    background-color: #ffd700;
+    color: #b8860b;
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.3);
+}
+
+.second-place {
+    background-color: #c0c0c0;
+    color: #696969;
+    box-shadow: 0 2px 10px rgba(192, 192, 192, 0.3);
+}
+
+.third-place {
+    background-color: #cd7f32;
+    color: white;
+    box-shadow: 0 2px 10px rgba(205, 127, 50, 0.3);
+}
+
+.other-place {
+    background-color: #f8f9fa;
+    color: #666;
+    border: 2px solid #dee2e6;
+}
+
+.game-details {
+    font-size: 12px;
+    color: #6c757d;
+    text-align: right;
+}
+
+/* Messages d'état */
+.loading {
+    text-align: center;
+    color: #6c757d;
+    font-style: italic;
+    padding: 40px;
+    font-size: 16px;
+}
+
+.error {
+    text-align: center;
+    color: #dc3545;
+    padding: 20px;
+    background-color: #f8d7da;
+    border-radius: 8px;
+    border: 1px solid #f5c6cb;
+}
+
+/* Responsive Design */
+@media (max-width: 868px) {
+    .dashboard-container {
+        grid-template-columns: 1fr;
+        padding: 15px;
+        gap: 20px;
+    }
+    
+    .game-options {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .option-group {
+        width: 100%;
+    }
+    
+    .option-group select {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .join-options {
+        flex-direction: column;
+    }
+    
+    .join-options input {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .game-history-item {
+        grid-template-columns: 1fr;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .game-details {
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-value {
+        font-size: 28px;
+    }
+    
+    .user-info {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+}
+
+/* Animations */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.game-section,
+.stats-section,
+.history-section,
+.join-section {
+    animation: slideInUp 0.6s ease-out;
+}
+
+/* Délais d'animation pour l'effet cascade */
+.game-section {
+    animation-delay: 0.1s;
+}
+
+.join-section {
+    animation-delay: 0.2s;
+}
+
+.stats-section {
+    animation-delay: 0.3s;
+}
+
+.history-section {
+    animation-delay: 0.4s;
+}

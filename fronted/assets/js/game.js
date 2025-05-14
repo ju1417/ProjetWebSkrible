@@ -29,6 +29,10 @@ let ws = null;
 let myUsername = '';
 let isDrawer = false;
 
+// Variable pour éviter les reconnexions multiples
+let isConnecting = false;
+let reconnectionTimeoutId = null;
+
 // Ajouter aux variables globales existantes
 let totalRounds = 3; // Valeur par défaut
 let currentRound = 0;
@@ -36,97 +40,268 @@ let isGameCreator = false; // Pour identifier le premier joueur qui crée la par
 
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
-    initCanvas();
-    setupEventListeners();
+    console.log('🚀 Initialisation de la page...');
     
-    // Demander le nom d'utilisateur
-    myUsername = prompt('Entrez votre nom d\'utilisateur:') || 'Joueur' + Math.floor(Math.random() * 1000);
-    
-    // Demander le nombre de rounds seulement au premier joueur
-    const urlParams = new URLSearchParams(window.location.search);
-    const roomId = urlParams.get('room');
-    
-    if (!roomId) {
-        // C'est un nouveau jeu, donc le joueur est le créateur
-        isGameCreator = true;
-        totalRounds = parseInt(prompt('Nombre de rounds (entre 1 et 10):', '3')) || 3;
-        // S'assurer que le nombre est dans une plage valide
-        totalRounds = Math.max(1, Math.min(10, totalRounds));
+    // Vérifier si l'utilisateur est connecté
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+        alert('Vous devez être connecté pour jouer');
+        window.location.href = 'index.html';
+        return;
     }
     
-    // Se connecter au WebSocket
+    // Récupérer le nom d'utilisateur depuis localStorage
+    const userData = JSON.parse(currentUser);
+    myUsername = userData.username;
+    console.log('👤 Joueur connecté:', myUsername);
+    
+    // ✅ SOLUTION : Utiliser une clé spécifique à l'utilisateur
+    const storageKey = `gameSettings_${myUsername}`;
+    console.log('🔍 Recherche paramètres avec clé:', storageKey);
+    
+    // Vérifier TOUTES les clés pour débogage
+    console.log('📱 SessionStorage - Toutes les clés:', Object.keys(sessionStorage));
+    
+    // Récupérer les paramètres spécifiques à cet utilisateur
+    const gameSettingsRaw = sessionStorage.getItem(storageKey);
+    console.log('📱 SessionStorage pour', myUsername, ':', gameSettingsRaw);
+    
+    // Parser les paramètres
+    const gameSettings = JSON.parse(gameSettingsRaw || '{}');
+    console.log('🎮 Paramètres reçus:', gameSettings);
+    
+    // VÉRIFICATION DE SÉCURITÉ : Les paramètres appartiennent-ils au bon utilisateur ?
+    if (gameSettings.username && gameSettings.username !== myUsername) {
+        console.error('🚨 ERREUR: Paramètres pour', gameSettings.username, 'mais connecté comme', myUsername);
+        // Utiliser des valeurs par défaut sécurisées
+        isGameCreator = false;
+        totalRounds = 3;
+    } else {
+        // Configurer selon les paramètres
+        if (gameSettings.isGameCreator === true) {
+            isGameCreator = true;
+            totalRounds = gameSettings.totalRounds || 3;
+            console.log(`👑 ${myUsername} va créer une nouvelle partie avec ${totalRounds} rounds`);
+        } else {
+            isGameCreator = false;
+            totalRounds = 3;
+            console.log(`👤 ${myUsername} va rejoindre une partie existante`);
+        }
+    }
+    
+    // ✅ Nettoyer les paramètres APRÈS utilisation (avec la bonne clé)
+    sessionStorage.removeItem(storageKey);
+    console.log('🧹 Paramètres nettoyés pour', myUsername);
+    
+    // Afficher l'état final
+    console.log(`🎯 État final - ${myUsername}: créateur=${isGameCreator}, rounds=${totalRounds}`);
+    
+    // ... reste de l'initialisation ...
+    initCanvas();
+    setupEventListeners();
     connectWebSocket();
 });
 
+
 // Fonction de connexion WebSocket
 function connectWebSocket() {
+    // Éviter les connexions multiples simultanées
+    if (isConnecting) {
+        console.log('⚠️ Connexion déjà en cours');
+        return;
+    }
+    
+    // Si une connexion existe et est ouverte, ne pas reconnecter
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        console.log('⚠️ Connexion déjà établie');
+        return;
+    }
+    
+    // Fermer proprement l'ancienne connexion si elle existe
+    if (ws && ws.readyState !== WebSocket.CLOSED) {
+        console.log('🔌 Fermeture ancienne connexion...');
+        ws.onclose = null; // Empêcher la reconnexion automatique
+        ws.close();
+    }
+    
+    isConnecting = true;
+    
+    // Nettoyer les timeouts de reconnexion précédents
+    if (reconnectionTimeoutId) {
+        clearTimeout(reconnectionTimeoutId);
+        reconnectionTimeoutId = null;
+    }
+    
+    console.log('🔌 Tentative de connexion WebSocket...');
     ws = new WebSocket('ws://localhost:3001');
     
     ws.onopen = () => {
-        console.log('Connecté au serveur');
+        console.log('✅ Connecté au serveur WebSocket');
+        isConnecting = false;
+        
         // Envoyer un message pour rejoindre le jeu
-        ws.send(JSON.stringify({
+        const joinMessage = {
             type: 'join',
             username: myUsername,
             isGameCreator: isGameCreator,
             totalRounds: isGameCreator ? totalRounds : undefined
-        }));
+        };
+        
+        console.log('📤 Envoi message join:', joinMessage);
+        ws.send(JSON.stringify(joinMessage));
     };
 
     ws.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        handleServerMessage(message);
+        try {
+            const message = JSON.parse(event.data);
+            handleServerMessage(message);
+        } catch (error) {
+            console.error('❌ Erreur parsing message:', error);
+        }
     };
     
     ws.onerror = (error) => {
-        console.error('Erreur WebSocket:', error);
+        console.error('❌ Erreur WebSocket:', error);
+        isConnecting = false;
     };
     
-    ws.onclose = () => {
-        console.log('Déconnecté du serveur');
-        // Tenter de se reconnecter après 3 secondes
-        setTimeout(connectWebSocket, 3000);
+    ws.onclose = (event) => {
+        console.log('🔌 Connexion WebSocket fermée', event.code, event.reason);
+        isConnecting = false;
+        
+        // Ne reconnecter que si la fermeture n'était pas intentionnelle
+        // et qu'on n'a pas d'erreur de connexion multiple
+        if (event.code !== 1000 && event.code !== 1001 && event.code !== 1006) {
+            console.log('🔄 Tentative de reconnexion dans 3 secondes...');
+            addChatMessage('Système', 'Connexion perdue. Tentative de reconnexion...', true);
+            
+            reconnectionTimeoutId = setTimeout(() => {
+                // Vérifier qu'on n'est pas déjà en train de se reconnecter
+                if (!isConnecting && (!ws || ws.readyState === WebSocket.CLOSED)) {
+                    connectWebSocket();
+                }
+            }, 3000);
+        } else if (event.code === 1006) {
+            // Code 1006 = connexion fermée de manière inattendue
+            console.log('⚠️ Connexion fermée de manière inattendue');
+            addChatMessage('Système', 'Connexion perdue. Veuillez recharger la page.', true);
+        }
     };
 }
 
 // Gestionnaire des messages du serveur
 function handleServerMessage(message) {
-    // Déboguer: afficher tous les messages reçus
-    console.log('Message reçu du serveur:', message);
+    console.log('📨 Message reçu du serveur:', message);
     
     switch(message.type) {
         case 'gameState':
             updateGameState(message);
+            
+            // ✅ NOUVEAU: Afficher qui est le créateur
+            if (message.creator) {
+                console.log(`👑 Créateur de la partie: ${message.creator}`);
+                // Afficher un message uniquement lors de la première connexion
+                if (!document.querySelector('.creator-message')) {
+                    const creatorMsg = document.createElement('div');
+                    creatorMsg.className = 'creator-message';
+                    addChatMessage('Système', `Partie créée par ${message.creator}`, true);
+                }
+            }
             break;
+            
         case 'playerJoined':
-            addPlayer(message.player);
+            console.log('👥 Nouveau joueur:', message.player);
+            // Note: updateGameState gèrera la mise à jour de la liste
             break;
+            
         case 'playerLeft':
-            removePlayer(message.playerId);
+            console.log('👋 Joueur parti:', message.username);
+            // Note: updateGameState gèrera la mise à jour de la liste
             break;
+            
         case 'chat':
             addChatMessage(message.sender, message.content);
             break;
+            
         case 'draw':
             handleRemoteDrawing(message.drawData);
             break;
+            
         case 'newRound':
             startNewRound(message);
             break;
+            
         case 'correctGuess':
             handleCorrectGuess(message);
             break;
+            
         case 'timeUpdate':
             updateTimer(message.timeLeft);
             break;
+            
         case 'roundEnd':
             handleRoundEnd(message);
             break;
+            
         case 'gameOver':
             showGameOver(message.finalScores);
             break;
+            
+        case 'gameStarting':
+            addChatMessage('Système', message.message, true);
+            if (message.players) {
+                updatePlayersList(message.players);
+            }
+            break;
+            
+        case 'waitingForPlayers':
+            addChatMessage('Système', message.message || 'En attente de joueurs...', true);
+            break;
+            
+        case 'gameRestarting':
+            addChatMessage('Système', message.message, true);
+            
+            // Supprimer la popup de fin de jeu si elle existe
+            if (message.closeGameOver) {
+                const existingGameOver = document.querySelector('.game-over-announcement');
+                if (existingGameOver) {
+                    existingGameOver.remove();
+                }
+            }
+            
+            // Mettre à jour l'interface utilisateur pour la nouvelle partie
+            clearCanvas();
+            updatePlayersList(message.players);
+            break;
+            
+        case 'error':
+            console.error('❌ Erreur du serveur:', message.message);
+            
+            // ✅ AMÉLIORATION: Meilleure gestion des erreurs de connexion multiple
+            if (message.message.includes('déjà connecté')) {
+                console.log('🔄 Connexion multiple détectée, nettoyage...');
+                
+                // Fermer cette connexion
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.close(1000, 'Connexion multiple');
+                }
+                
+                // Attendre un peu avant de potentiellement reconnecter
+                setTimeout(() => {
+                    console.log('🔄 Tentative de reconnexion après nettoyage...');
+                    if (!ws || ws.readyState === WebSocket.CLOSED) {
+                        connectWebSocket();
+                    }
+                }, 2000);
+                
+                return; // Important: ne pas afficher l'alerte
+            } else {
+                alert(message.message);
+            }
+            break;
+            
         default:
-            console.log('Type de message non géré:', message.type);
+            console.log('❓ Type de message non géré:', message.type);
     }
 }
 
@@ -490,15 +665,17 @@ function sendMessage() {
 
 // Fonction pour mettre à jour l'état du jeu
 function updateGameState(state) {
-    console.log("Mise à jour de l'état du jeu:", state);
+    console.log("📊 Mise à jour de l'état du jeu:", state);
     
-    // Mettre à jour la liste des joueurs si disponible
-    if (state.players) {
-        // Mettre à jour notre variable locale des joueurs
+    // Mettre à jour la liste des joueurs - IMPORTANT!
+    if (state.players && Array.isArray(state.players)) {
+        console.log("🔄 Mise à jour forcée de la liste des joueurs:", state.players);
+        
+        // Mettre à jour notre variable locale
         players = state.players;
         
-        // Mettre à jour l'affichage
-        updatePlayersList();
+        // Force la mise à jour de l'affichage
+        updatePlayersList(state.players);
     }
     
     // Mettre à jour le timer
@@ -508,15 +685,23 @@ function updateGameState(state) {
     
     // Mettre à jour les informations de round
     if (state.currentRound !== undefined && state.totalRounds !== undefined) {
-        document.getElementById('round-info').textContent = 
-            `Round ${state.currentRound}/${state.totalRounds}`;
+        const roundInfo = document.getElementById('round-info');
+        if (roundInfo) {
+            roundInfo.textContent = `Round ${state.currentRound}/${state.totalRounds}`;
+        }
     }
     
-    // Autres mises à jour d'état si nécessaire
+    // Mettre à jour l'état du jeu
+    if (state.gameState) {
+        gameState = state.gameState;
+        console.log(`🎮 État du jeu: ${gameState}`);
+    }
 }
 
 // Fonction pour démarrer un nouveau round
 function startNewRound(data) {
+    console.log('🎮 Nouveau round:', data);
+    
     clearCanvas();
     
     // Mettre à jour l'indicateur de round
@@ -525,6 +710,13 @@ function startNewRound(data) {
     
     // Afficher l'information sur les rounds
     document.getElementById('round-info').textContent = `Round ${currentRound}/${totalRounds}`;
+    
+    // CORRECTION: Mettre à jour la liste des joueurs avec les nouvelles données
+    if (data.players) {
+        console.log('🔄 Mise à jour joueurs depuis newRound:', data.players);
+        players = data.players; // Mettre à jour la variable locale
+        updatePlayersList(data.players); // Mettre à jour l'affichage
+    }
     
     if (data.role === 'drawer') {
         isDrawer = true;
@@ -553,10 +745,22 @@ function startNewRound(data) {
 }
 
 // Fonction pour ajouter un chat
-function addChatMessage(username, message) {
+function addChatMessage(username, message, isSystem = false) {
     const chatMessages = document.getElementById('chat-messages');
+    if (!chatMessages) {
+        console.error('❌ Element chat-messages introuvable');
+        return;
+    }
+    
     const messageElement = document.createElement('div');
-    messageElement.className = 'new-message'; // Ajouter la classe d'animation
+    messageElement.className = 'chat-message';
+    
+    if (isSystem) {
+        messageElement.classList.add('system-message');
+        messageElement.style.fontStyle = 'italic';
+        messageElement.style.color = '#666';
+    }
+    
     messageElement.innerHTML = `<strong>${username}:</strong> ${message}`;
     
     chatMessages.appendChild(messageElement);
@@ -566,26 +770,56 @@ function addChatMessage(username, message) {
 // Fonctions pour les joueurs
 function updatePlayersList(serverPlayers = null) {
     const playersContainer = document.getElementById('players-container');
+    
+    if (!playersContainer) {
+        console.error('❌ Element players-container introuvable');
+        return;
+    }
+    
+    // Vider le container
     playersContainer.innerHTML = '';
     
     // Utiliser les joueurs du serveur si disponibles, sinon utiliser la variable locale
     const playersToDisplay = serverPlayers || players;
     
-    // Déboguer: afficher les joueurs dans la console
-    console.log('Mise à jour de la liste des joueurs:', playersToDisplay);
+    console.log('🎨 Affichage de la liste des joueurs:', playersToDisplay);
+    
+    // Vérifier que nous avons des joueurs à afficher
+    if (!playersToDisplay || !Array.isArray(playersToDisplay) || playersToDisplay.length === 0) {
+        console.log('⚠️ Aucun joueur à afficher');
+        playersContainer.innerHTML = '<div class="no-players">Aucun joueur connecté</div>';
+        return;
+    }
     
     // Afficher chaque joueur
-    playersToDisplay.forEach(player => {
+    playersToDisplay.forEach((player, index) => {
+        // CORRECTION: Log détaillé pour déboguer
+        console.log(`  Joueur ${index}: ${player.username}, isDrawing: ${player.isDrawing}`);
+        
         const playerElement = document.createElement('div');
         playerElement.className = 'player-item';
         playerElement.style.marginBottom = '10px';
+        playerElement.style.padding = '10px';
+        playerElement.style.border = '1px solid #ccc';
+        playerElement.style.borderRadius = '5px';
+        playerElement.style.backgroundColor = player.isDrawing ? '#e8f5e9' : '#f5f5f5';
+        
+        // CORRECTION: Vérifier explicitement la valeur de isDrawing
+        const drawingIndicator = player.isDrawing === true ? 
+            '<span style="color: green; margin-left: 10px;">🎨 Dessine</span>' : '';
+        
         playerElement.innerHTML = `
-            <strong>${player.username}</strong>
-            <span style="float: right;">${player.score || 0} pts</span>
-            ${player.isDrawing ? '<span style="color: green;"> (Dessine)</span>' : ''}
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <strong style="flex-grow: 1;">${player.username}</strong>
+                <span style="margin-left: 10px;">${player.score || 0} pts</span>
+                ${drawingIndicator}
+            </div>
         `;
+        
         playersContainer.appendChild(playerElement);
     });
+    
+    console.log(`📊 ${playersToDisplay.length} joueurs affichés`);
 }
 
 // Simuler le dessin d'un bot
@@ -670,33 +904,192 @@ function showRoundAnnouncement(text) {
     }, 3000);
 }
 
-// Nouvelle fonction pour afficher la fin du jeu
+// Fonction pour afficher la fin du jeu avec gestion des égalités
+
 function showGameOver(finalScores) {
-    // Trier les scores par ordre décroissant
-    const sortedScores = [...finalScores].sort((a, b) => b.score - a.score);
-    const winner = sortedScores[0];
+    console.log("Affichage de la fin de partie avec scores:", finalScores);
     
+    // Supprimer toute annonce précédente si elle existe
+    const existingAnnouncement = document.querySelector('.game-over-announcement');
+    if (existingAnnouncement) {
+        existingAnnouncement.remove();
+    }
+    
+    // Trier les scores par ordre décroissant avec gestion des égalités
+    const sortedScores = [...finalScores].sort((a, b) => {
+        // D'abord trier par score
+        if (b.score !== a.score) {
+            return b.score - a.score;
+        }
+        // En cas d'égalité, trier par ordre alphabétique des noms
+        return a.username.localeCompare(b.username);
+    });
+    
+    // Déterminer les rangs avec gestion des égalités
+    let currentRank = 1;
+    let previousScore = -1;
+    let rankedPlayers = sortedScores.map((player, index) => {
+        if (player.score !== previousScore) {
+            currentRank = index + 1;
+        }
+        previousScore = player.score;
+        return { ...player, rank: currentRank };
+    });
+    
+    // Le gagnant est le joueur de rang 1
+    const winners = rankedPlayers.filter(player => player.rank === 1);
+    const isMultipleWinners = winners.length > 1;
+    
+    // Créer l'élément d'annonce
     const gameOverAnnouncement = document.createElement('div');
     gameOverAnnouncement.className = 'game-over-announcement';
+    gameOverAnnouncement.style.position = 'fixed';
+    gameOverAnnouncement.style.top = '50%';
+    gameOverAnnouncement.style.left = '50%';
+    gameOverAnnouncement.style.transform = 'translate(-50%, -50%)';
+    gameOverAnnouncement.style.backgroundColor = 'white';
+    gameOverAnnouncement.style.padding = '30px';
+    gameOverAnnouncement.style.borderRadius = '10px';
+    gameOverAnnouncement.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
+    gameOverAnnouncement.style.zIndex = '1000';
+    gameOverAnnouncement.style.textAlign = 'center';
+    gameOverAnnouncement.style.maxWidth = '500px';
+    
+    // Adapter le message selon qu'il y a un ou plusieurs gagnants
+    let winnerMessage;
+    if (isMultipleWinners) {
+        const winnerNames = winners.map(w => w.username).join(' et ');
+        winnerMessage = `<h3>🎉 Égalité ! ${winnerNames} gagnent avec ${winners[0].score} points!</h3>`;
+    } else {
+        winnerMessage = `<h3>🎉 ${winners[0].username} gagne avec ${winners[0].score} points!</h3>`;
+    }
+    
+    // Contenu avec les DEUX boutons côte à côte
     gameOverAnnouncement.innerHTML = `
-        <h2>Fin de la partie!</h2>
-        <h3>${winner.username} gagne avec ${winner.score} points!</h3>
-        <div class="final-scores">
-            <h4>Scores finaux:</h4>
-            <ul>
-                ${sortedScores.map(player => `<li>${player.username}: ${player.score} points</li>`).join('')}
+        <h2>🏆 Fin de la partie !</h2>
+        ${winnerMessage}
+        <div class="final-scores" style="margin: 20px 0;">
+            <h4>📊 Scores finaux :</h4>
+            <ul style="list-style: none; padding: 0; margin: 10px 0;">
+                ${rankedPlayers.map(player => 
+                    `<li style="padding: 5px 0; ${player.rank === 1 ? 'font-weight: bold; color: #28a745;' : ''}"">
+                        ${player.rank}. ${player.username}: ${player.score} points
+                        ${player.rank === 1 ? ' 🏆' : ''}
+                    </li>`
+                ).join('')}
             </ul>
         </div>
-        <button id="new-game-btn">Nouvelle Partie</button>
+        <div class="game-over-buttons" style="display: flex; gap: 15px; justify-content: center; margin-top: 25px;">
+            <button id="new-game-btn" style="
+                padding: 15px 25px; 
+                background-color: #28a745; 
+                color: white; 
+                border: none; 
+                border-radius: 8px; 
+                cursor: pointer; 
+                font-size: 16px; 
+                font-weight: bold;
+                transition: background-color 0.3s;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+                🎮 Nouvelle Partie
+            </button>
+            <button id="dashboard-btn" style="
+                padding: 15px 25px; 
+                background-color: #007bff; 
+                color: white; 
+                border: none; 
+                border-radius: 8px; 
+                cursor: pointer; 
+                font-size: 16px; 
+                font-weight: bold;
+                transition: background-color 0.3s;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+                🏠 Retour au Dashboard
+            </button>
+        </div>
+        <div style="margin-top: 15px; color: #666; font-size: 14px;">
+            💡 Astuce : Vous pouvez aussi appuyer sur <kbd>Échap</kbd> pour retourner au dashboard
+        </div>
     `;
     
+    // Ajouter l'annonce au DOM
     document.body.appendChild(gameOverAnnouncement);
     
-    // Ajouter l'écouteur pour le bouton nouvelle partie
-    document.getElementById('new-game-btn').addEventListener('click', () => {
-        location.reload();
+    // Gestionnaire pour le bouton "Nouvelle Partie"
+    document.getElementById('new-game-btn').addEventListener('click', function() {
+        console.log("🎮 Bouton Nouvelle Partie cliqué");
+        
+        // Envoyer un message au serveur pour relancer la partie
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+                type: 'restartGame'
+            }));
+            console.log("📤 Message restartGame envoyé au serveur");
+        } else {
+            console.error("❌ WebSocket non connecté, impossible d'envoyer la demande de redémarrage");
+            alert("Erreur de connexion. Impossible de redémarrer la partie.");
+        }
+        
+        // Supprimer l'annonce
+        gameOverAnnouncement.remove();
+    });
+    
+    // Gestionnaire pour le bouton "Retour au Dashboard"
+    document.getElementById('dashboard-btn').addEventListener('click', function() {
+        console.log("🏠 Bouton Retour au Dashboard cliqué");
+        
+        // Fermer la connexion WebSocket proprement
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, 'Retour volontaire au dashboard');
+            console.log("🔌 Connexion WebSocket fermée");
+        }
+        
+        // Supprimer l'annonce
+        gameOverAnnouncement.remove();
+        
+        // Rediriger vers le dashboard
+        window.location.href = 'dashboard.html';
     });
 }
+
+// BONUS: Fonction pour retourner au dashboard (améliorée)
+function returnToDashboard() {
+    // Afficher une confirmation plus élégante
+    const gameOverAnnouncement = document.querySelector('.game-over-announcement');
+    
+    // Si on est en fin de partie, pas besoin de confirmation
+    if (gameOverAnnouncement) {
+        // Fermer la connexion et rediriger directement
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, 'Retour volontaire au dashboard');
+        }
+        window.location.href = 'dashboard.html';
+        return;
+    }
+    
+    // Sinon, demander confirmation
+    const confirmation = confirm('Voulez-vous vraiment quitter la partie et retourner au dashboard ?');
+    if (confirmation) {
+        // Fermer la connexion WebSocket proprement
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, 'Retour volontaire au dashboard');
+            console.log("🔌 Connexion fermée - retour au dashboard");
+        }
+        
+        // Rediriger vers le dashboard
+        window.location.href = 'dashboard.html';
+    }
+}
+
+// Le raccourci clavier reste inchangé
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        returnToDashboard();
+    }
+});
+
 function endGame() {
     gameRoom.gameState = 'waiting';
     gameRoom.currentWord = null;
@@ -723,17 +1116,26 @@ function endGame() {
 
 // Fonction pour ajouter un joueur
 function addPlayer(player) {
-    // Ajouter le joueur à notre tableau local de joueurs
+    console.log(`👤 Nouveau joueur à ajouter:`, player);
+    
     // Vérifier d'abord si le joueur existe déjà pour éviter les doublons
     const existingPlayerIndex = players.findIndex(p => p.username === player.username);
     
     if (existingPlayerIndex === -1) {
         // Si le joueur n'existe pas, l'ajouter à notre tableau
         players.push(player);
+        console.log(`✅ Joueur ajouté: ${player.username}`);
     } else {
         // Si le joueur existe déjà, mettre à jour ses informations
         players[existingPlayerIndex] = player;
+        console.log(`🔄 Joueur mis à jour: ${player.username}`);
     }
+    
+    // Afficher la liste complète des joueurs
+    console.log(`📋 Liste complète des joueurs (${players.length}):`);
+    players.forEach((p, index) => {
+        console.log(`  ${index}: ${p.username} (${p.score} pts)`);
+    });
     
     // Mettre à jour l'affichage des joueurs
     updatePlayersList();
@@ -772,9 +1174,30 @@ function showGameOver(finalScores) {
         existingAnnouncement.remove();
     }
     
-    // Trier les scores par ordre décroissant
-    const sortedScores = [...finalScores].sort((a, b) => b.score - a.score);
-    const winner = sortedScores[0];
+    // Trier les scores par ordre décroissant avec gestion des égalités
+    const sortedScores = [...finalScores].sort((a, b) => {
+        // D'abord trier par score
+        if (b.score !== a.score) {
+            return b.score - a.score;
+        }
+        // En cas d'égalité, trier par ordre alphabétique des noms
+        return a.username.localeCompare(b.username);
+    });
+    
+    // Déterminer les rangs avec gestion des égalités
+    let currentRank = 1;
+    let previousScore = -1;
+    let rankedPlayers = sortedScores.map((player, index) => {
+        if (player.score !== previousScore) {
+            currentRank = index + 1;
+        }
+        previousScore = player.score;
+        return { ...player, rank: currentRank };
+    });
+    
+    // Le gagnant est le joueur de rang 1
+    const winners = rankedPlayers.filter(player => player.rank === 1);
+    const isMultipleWinners = winners.length > 1;
     
     // Créer l'élément d'annonce
     const gameOverAnnouncement = document.createElement('div');
@@ -784,43 +1207,167 @@ function showGameOver(finalScores) {
     gameOverAnnouncement.style.left = '50%';
     gameOverAnnouncement.style.transform = 'translate(-50%, -50%)';
     gameOverAnnouncement.style.backgroundColor = 'white';
-    gameOverAnnouncement.style.padding = '20px';
+    gameOverAnnouncement.style.padding = '30px';
     gameOverAnnouncement.style.borderRadius = '10px';
-    gameOverAnnouncement.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
+    gameOverAnnouncement.style.boxShadow = '0 0 20px rgba(0, 0, 0, 0.5)';
     gameOverAnnouncement.style.zIndex = '1000';
     gameOverAnnouncement.style.textAlign = 'center';
+    gameOverAnnouncement.style.maxWidth = '500px';
     
-    // Contenu de l'annonce
+    // Adapter le message selon qu'il y a un ou plusieurs gagnants
+    let winnerMessage;
+    if (isMultipleWinners) {
+        const winnerNames = winners.map(w => w.username).join(' et ');
+        winnerMessage = `<h3>🎉 Égalité ! ${winnerNames} gagnent avec ${winners[0].score} points!</h3>`;
+    } else {
+        winnerMessage = `<h3>🎉 ${winners[0].username} gagne avec ${winners[0].score} points!</h3>`;
+    }
+    
+    // ✅ CONTENU AVEC LES DEUX BOUTONS
     gameOverAnnouncement.innerHTML = `
-        <h2>Fin de la partie!</h2>
-        <h3>${winner.username} gagne avec ${winner.score} points!</h3>
-        <div class="final-scores">
-            <h4>Scores finaux:</h4>
-            <ul style="list-style: none; padding: 0;">
-                ${sortedScores.map(player => `<li>${player.username}: ${player.score} points</li>`).join('')}
+        <h2>🏆 Fin de la partie !</h2>
+        ${winnerMessage}
+        <div class="final-scores" style="margin: 20px 0;">
+            <h4>📊 Scores finaux :</h4>
+            <ul style="list-style: none; padding: 0; margin: 10px 0;">
+                ${rankedPlayers.map(player => 
+                    `<li style="padding: 5px 0; ${player.rank === 1 ? 'font-weight: bold; color: #28a745;' : ''}"">
+                        ${player.rank}. ${player.username}: ${player.score} points
+                        ${player.rank === 1 ? ' 🏆' : ''}
+                    </li>`
+                ).join('')}
             </ul>
         </div>
-        <button id="new-game-btn" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">Nouvelle Partie</button>
+        <div class="game-over-buttons" style="display: flex; gap: 15px; justify-content: center; margin-top: 25px;">
+            <button id="new-game-btn" style="
+                padding: 15px 25px; 
+                background-color: #28a745; 
+                color: white; 
+                border: none; 
+                border-radius: 8px; 
+                cursor: pointer; 
+                font-size: 16px; 
+                font-weight: bold;
+                transition: background-color 0.3s;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            " onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
+                🎮 Nouvelle Partie
+            </button>
+            <button id="dashboard-btn" style="
+                padding: 15px 25px; 
+                background-color: #007bff; 
+                color: white; 
+                border: none; 
+                border-radius: 8px; 
+                cursor: pointer; 
+                font-size: 16px; 
+                font-weight: bold;
+                transition: background-color 0.3s;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            " onmouseover="this.style.backgroundColor='#0056b3'" onmouseout="this.style.backgroundColor='#007bff'">
+                🏠 Retour au Dashboard
+            </button>
+        </div>
+        <div style="margin-top: 15px; color: #666; font-size: 14px;">
+            💡 Astuce : Vous pouvez aussi appuyer sur <kbd>Échap</kbd> pour retourner au dashboard
+        </div>
     `;
     
     // Ajouter l'annonce au DOM
     document.body.appendChild(gameOverAnnouncement);
     
-    // Ajouter l'écouteur d'événements au bouton
+    // ✅ GESTIONNAIRE POUR "NOUVELLE PARTIE"
     document.getElementById('new-game-btn').addEventListener('click', function() {
-        console.log("Bouton Nouvelle Partie cliqué");
+        console.log("🎮 Bouton Nouvelle Partie cliqué");
         
         // Envoyer un message au serveur pour relancer la partie
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify({
                 type: 'restartGame'
             }));
-            console.log("Message restartGame envoyé au serveur");
+            console.log("📤 Message restartGame envoyé au serveur");
         } else {
-            console.error("WebSocket non connecté, impossible d'envoyer la demande de redémarrage");
+            console.error("❌ WebSocket non connecté, impossible d'envoyer la demande de redémarrage");
+            alert("Erreur de connexion. Impossible de redémarrer la partie.");
         }
         
         // Supprimer l'annonce
         gameOverAnnouncement.remove();
     });
+    
+    // ✅ GESTIONNAIRE POUR "RETOUR AU DASHBOARD" 
+    document.getElementById('dashboard-btn').addEventListener('click', function() {
+        console.log("🏠 Bouton Retour au Dashboard cliqué");
+        
+        // Fermer la connexion WebSocket proprement
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close(1000, 'Retour volontaire au dashboard');
+            console.log("🔌 Connexion WebSocket fermée");
+        }
+        
+        // Supprimer l'annonce
+        gameOverAnnouncement.remove();
+        
+        // Rediriger vers le dashboard
+        window.location.href = 'dashboard.html';
+    });
 }
+
+// Fonction pour retourner au dashboard
+function returnToDashboard() {
+    if (confirm('Voulez-vous vraiment quitter la partie et retourner au dashboard ?')) {
+        // Fermer la connexion WebSocket proprement
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+        }
+        
+        // Rediriger vers le dashboard
+        window.location.href = 'dashboard.html';
+    }
+}
+
+// Fonction pour gérer la déconnexion
+function closeConnection(reason = 'Fermeture manuelle') {
+    console.log(`🔌 Fermeture connexion: ${reason}`);
+    
+    // Arrêter les tentatives de reconnexion
+    if (reconnectionTimeoutId) {
+        clearTimeout(reconnectionTimeoutId);
+        reconnectionTimeoutId = null;
+    }
+    
+    // Fermer la connexion
+    if (ws && ws.readyState !== WebSocket.CLOSED) {
+        ws.onclose = null; // Empêcher la reconnexion automatique
+        ws.close(1000, reason);
+    }
+    
+    ws = null;
+    isConnecting = false;
+}
+
+// Raccourci clavier pour retourner au dashboard (Échap)
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        returnToDashboard();
+    }
+});
+
+// Fermer proprement la connexion quand on quitte la page
+window.addEventListener('beforeunload', function(e) {
+    closeConnection('Page fermée');
+});
+
+// Gérer la perte de focus/visibilité de la page
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        console.log('📱 Page cachée');
+    } else {
+        console.log('📱 Page visible');
+        // Vérifier l'état de la connexion quand on revient sur la page
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.log('🔄 Reconnexion après retour sur la page');
+            setTimeout(() => connectWebSocket(), 1000);
+        }
+    }
+});

@@ -13,10 +13,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const loginSection = document.getElementById('login-section');
   const registerSection = document.getElementById('register-section');
   
-  // Bouton de test API
-  const testApiBtn = document.getElementById('test-api');
-  const apiResult = document.getElementById('api-result');
-  
   // Fonctions de navigation
   function showSection(section) {
       // Cacher toutes les sections
@@ -56,58 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
       showSection(registerSection);
       updateActiveNav(navRegister);
   });
-  
-  // Tester l'API
-  testApiBtn.addEventListener('click', async function() {
-      try {
-          apiResult.style.display = 'block';
-          apiResult.textContent = 'Chargement...';
-          
-          // Utiliser une route qui existe réellement dans votre serveur
-          const response = await fetch(`${API_URL}/words`);
-          
-          if (!response.ok) {
-              throw new Error(`Erreur HTTP: ${response.status}`);
-          }
-          
-          const data = await response.json();
-          apiResult.textContent = `Réponse du serveur: ${data.length} mots trouvés`;
-          apiResult.style.color = 'green';
-          
-          // Tester la connexion WebSocket
-          testWebSocket();
-          
-      } catch (error) {
-          console.error('Erreur lors du test de l\'API:', error);
-          apiResult.textContent = `Erreur: Impossible de contacter le serveur. Vérifiez que le backend est en cours d'exécution.`;
-          apiResult.style.color = 'red';
-      }
-  });
-  
-  function testWebSocket() {
-    const ws = new WebSocket(WS_URL);
 
-    ws.onopen = () => {
-      console.log("Connexion WebSocket établie");
-
-      // Envoyer un message au serveur
-      ws.send("Bonjour depuis le frontend!");
-    };
-
-    ws.onmessage = (event) => {
-      console.log("Message reçu du serveur :", event.data);
-    };
-
-    ws.onerror = (error) => {
-      console.error("Erreur WebSocket :", error);
-    };
-
-    ws.onclose = () => {
-      console.log("Connexion WebSocket fermée");
-    };
-  }
-
-  // Formulaire de connexion
+  // Formulaire de connexion (avec la version debuggée)
   const loginForm = document.getElementById('login-form');
   loginForm.addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -115,7 +61,8 @@ document.addEventListener('DOMContentLoaded', function() {
       const username = document.getElementById('login-username').value;
       const password = document.getElementById('login-password').value;
       
-      // Maintenant on peut implémenter la connexion
+      console.log("Tentative de connexion pour:", username);
+      
       try {
           const response = await fetch(`${API_URL}/login`, {
               method: "POST",
@@ -128,22 +75,43 @@ document.addEventListener('DOMContentLoaded', function() {
               })
           });
           
+          console.log("Statut de la réponse:", response.status);
+          
           const data = await response.json();
+          console.log("Données reçues du serveur:", data);
           
           if (!response.ok) {
               throw new Error(data.error || "Erreur lors de la connexion");
           }
           
-          alert("Connexion réussie!");
-          // Rediriger ou mettre à jour l'interface
+          // Vérifier que les données utilisateur existent
+          if (!data.user || !data.user.username) {
+              throw new Error("Données utilisateur manquantes dans la réponse");
+          }
+          
+          console.log("Sauvegarde des données utilisateur:", data.user);
+          
+          // Sauvegarder les infos utilisateur
+          localStorage.setItem('currentUser', JSON.stringify({
+              username: data.user.username,
+              id: data.user.id
+          }));
+          
+          // Vérifier que la sauvegarde a fonctionné
+          const savedUser = localStorage.getItem('currentUser');
+          console.log("Données sauvegardées:", savedUser);
+          
+          // Rediriger vers le dashboard
+          console.log("Redirection vers dashboard.html");
+          window.location.href = 'dashboard.html';
           
       } catch (error) {
           console.error("Erreur lors de la connexion:", error);
-          alert(error.message);
+          alert("Erreur: " + error.message);
       }
   });
   
-  // Formulaire d'inscription
+  // Formulaire d'inscription (gardez votre code existant)
   const registerForm = document.getElementById('register-form');
   registerForm.addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -166,7 +134,6 @@ document.addEventListener('DOMContentLoaded', function() {
       try {
         console.log("Données envoyées au backend :", { username, password });
     
-        // Assurer que les données sont bien formatées
         const userData = {
           username: username.trim(),
           password: password.trim()
@@ -180,11 +147,9 @@ document.addEventListener('DOMContentLoaded', function() {
           body: JSON.stringify(userData)
         });
     
-        // Log de la réponse brute pour debug
         const responseText = await response.text();
         console.log("Réponse brute du serveur:", responseText);
         
-        // On tente de parser la réponse en JSON
         let data;
         try {
           data = JSON.parse(responseText);
@@ -198,6 +163,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     
         alert(data.message || "Inscription réussie!");
+        
+        // Après inscription réussie, passer à la section connexion
+        showSection(loginSection);
+        updateActiveNav(navLogin);
+        
       } catch (error) {
         console.error("Erreur lors de l'inscription :", error);
         alert(error.message);

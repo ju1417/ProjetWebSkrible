@@ -17,21 +17,20 @@
             </ul>
         </nav>
     </header>
-
+    
     <main>
         <section id="home-section" class="section-active">
             <h2>Bienvenue sur Skribble!</h2>
             <p>Un jeu où vous devrez dessiner et deviner ce que les autres joueurs dessinent.</p>
-            <!-- Ajoutez ce bouton pour accéder au jeu -->
-            <div style="margin: 20px 0;">
-                <a href="game.html" class="btn" style="display: inline-block; padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    Jouer maintenant
-                </a>
+            
+            <!-- Garder votre message d'origine avec un style amélioré -->
+            <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px; text-align: center;">
+                <p style="margin-bottom: 0; color: #6c757d;">
+                    Connectez-vous ou inscrivez-vous pour commencer à jouer !
+                </p>
             </div>
-            <button id="test-api">Tester l'API</button>
-            <div id="api-result"></div>
         </section>
-
+        
         <section id="login-section" class="section-hidden">
             <h2>Connexion</h2>
             <form id="login-form">
@@ -46,22 +45,22 @@
                 <button type="submit">Se connecter</button>
             </form>
         </section>
-
+        
         <section id="register-section" class="section-hidden">
             <h2>Inscription</h2>
             <form id="register-form">
-              <input type="text" id="register-username" placeholder="Nom d'utilisateur" required />
-              <input type="password" id="register-password" placeholder="Mot de passe" required />
-              <input type="password" id="register-confirm-password" placeholder="Confirmez le mot de passe" required />
-              <button type="submit">S'inscrire</button>
+                <input type="text" id="register-username" placeholder="Nom d'utilisateur" required />
+                <input type="password" id="register-password" placeholder="Mot de passe" required />
+                <input type="password" id="register-confirm-password" placeholder="Confirmez le mot de passe" required />
+                <button type="submit">S'inscrire</button>
             </form>
         </section>
     </main>
-
+    
     <footer>
         <p>&copy; 2025 - Skribble</p>
     </footer>
-
+    
     <script src="assets/js/main.js" type="module"></script>
 </body>
 </html>
