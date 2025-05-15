@@ -83,27 +83,35 @@ document.addEventListener('DOMContentLoaded', function() {
           if (!response.ok) {
               throw new Error(data.error || "Erreur lors de la connexion");
           }
-          
+
           // Vérifier que les données utilisateur existent
           if (!data.user || !data.user.username) {
               throw new Error("Données utilisateur manquantes dans la réponse");
           }
-          
+
           console.log("Sauvegarde des données utilisateur:", data.user);
-          
-          // Sauvegarder les infos utilisateur
-          localStorage.setItem('currentUser', JSON.stringify({
-              username: data.user.username,
-              id: data.user.id
-          }));
-          
+          console.log("=== FULL DEBUG ===");
+          console.log("Full response:", data);
+          console.log("data.user:", data.user);
+          console.log("Keys in data.user:", Object.keys(data.user));
+          console.log("data.user.hasOwnProperty('isadmin'):", data.user.hasOwnProperty('isadmin'));
+          console.log("=================");
+
+          // Sauvegarder les infos utilisateur avec le rôle admin
+          localStorage.setItem('currentUser', JSON.stringify(data.user));
+
           // Vérifier que la sauvegarde a fonctionné
           const savedUser = localStorage.getItem('currentUser');
           console.log("Données sauvegardées:", savedUser);
-          
-          // Rediriger vers le dashboard
-          console.log("Redirection vers dashboard.html");
-          window.location.href = 'dashboard.html';
+
+          // Rediriger vers le bon dashboard selon le rôle
+          if (data.user.isadmin) {
+              console.log("Redirection vers admin dashboard");
+              window.location.href = 'admin_dashboard.html';
+          } else {
+              console.log("Redirection vers dashboard normal");
+              window.location.href = 'dashboard.html';
+          }
           
       } catch (error) {
           console.error("Erreur lors de la connexion:", error);
@@ -139,12 +147,15 @@ document.addEventListener('DOMContentLoaded', function() {
           password: password.trim()
         };
     
-        const response = await fetch(`${API_URL}/register`, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json" 
-          },
-          body: JSON.stringify(userData)
+        const response = await fetch(`${API_URL}/api/login`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json" 
+            },
+            body: JSON.stringify({
+                username: username.trim(),
+                password: password.trim()
+            })
         });
     
         const responseText = await response.text();

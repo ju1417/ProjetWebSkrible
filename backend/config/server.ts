@@ -155,7 +155,7 @@ router.post("/api/login", async (ctx) => {
     
     // Chercher l'utilisateur
     const userResult = await db.queryObject(
-      "SELECT id, username, password FROM users WHERE username = $1",
+      "SELECT id, username, password, isadmin FROM users WHERE username = $1",
       [username]
     );
     
@@ -166,6 +166,9 @@ router.post("/api/login", async (ctx) => {
     }
     
     const user = userResult.rows[0];
+    console.log("🔍 Raw user from DB:", user);
+    console.log("🔍 user.isadmin:", user.isadmin);
+    console.log("🔍 typeof user.isadmin:", typeof user.isadmin);
     
     // Vérifier le mot de passe
     const isPasswordValid = await verifyPassword(password, user.password);
@@ -180,7 +183,7 @@ router.post("/api/login", async (ctx) => {
     ctx.response.body = {
       success: true,
       message: "Connexion réussie",
-      user: { id: user.id, username: user.username }
+      user: { id: user.id, username: user.username, isadmin : user.isadmin }
     };
     
   } catch (error) {
@@ -1133,3 +1136,4 @@ async function updateUserStats(sortedPlayers: Player[]) {
         }
     }
 }
+

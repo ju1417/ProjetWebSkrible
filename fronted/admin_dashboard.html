@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Skribble</title>
+    <link rel="stylesheet" href="assets/css/dashboard.css">
+    <style>
+        /* Styles spécifiques admin */
+        .admin-header {
+            background: linear-gradient(135deg, #dc2626, #991b1b);
+            color: white;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .admin-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .admin-stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+            border: 3px solid #dc2626;
+        }
+        
+        .admin-section {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .admin-section h3 {
+            color: #dc2626;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #dc2626;
+            padding-bottom: 0.5rem;
+        }
+        
+        .active-games-list, .active-players-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .game-item, .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: #f9fafb;
+        }
+        
+        .game-info, .player-info {
+            flex: 1;
+        }
+        
+        .game-actions, .player-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .admin-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+        }
+        
+        .admin-btn:hover {
+            background: #991b1b;
+        }
+        
+        .admin-btn.danger {
+            background: #dc2626;
+        }
+        
+        .admin-btn.warning {
+            background: #f59e0b;
+        }
+        
+        .game-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        .status-waiting {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .status-playing {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-finished {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .refresh-btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .refresh-btn:hover {
+            background: #1d4ed8;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #6b7280;
+            font-style: italic;
+        }
+        
+        .no-data {
+            text-align: center;
+            color: #6b7280;
+            background: #f9fafb;
+            padding: 2rem;
+            border-radius: 8px;
+            border: 2px dashed #d1d5db;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Admin Header -->
+        <div class="admin-header">
+            <h1>🛡️ Administration Skribble</h1>
+            <p>Bienvenue, <span id="admin-name">Admin</span> | <a href="#" id="logout-btn" style="color: white; text-decoration: underline;">Déconnexion</a></p>
+        </div>
+
+        <!-- Admin Stats -->
+        <div class="admin-stats">
+            <div class="admin-stat-card">
+                <h3>Parties actives</h3>
+                <div class="stat-value" id="active-games-count">-</div>
+            </div>
+            <div class="admin-stat-card">
+                <h3>Joueurs connectés</h3>
+                <div class="stat-value" id="active-players-count">-</div>
+            </div>
+            <div class="admin-stat-card">
+                <h3>Total utilisateurs</h3>
+                <div class="stat-value" id="total-users-count">-</div>
+            </div>
+            <div class="admin-stat-card">
+                <h3>Parties aujourd'hui</h3>
+                <div class="stat-value" id="games-today-count">-</div>
+            </div>
+        </div>
+
+        <!-- Active Games Section -->
+        <div class="admin-section">
+            <h3>🎮 Parties en cours</h3>
+            <button class="refresh-btn" onclick="refreshActiveGames()">Actualiser</button>
+            <div id="active-games-container" class="active-games-list">
+                <div class="loading">Chargement des parties...</div>
+            </div>
+        </div>
+
+        <!-- Active Players Section -->
+        <div class="admin-section">
+            <h3>👥 Joueurs connectés</h3>
+            <button class="refresh-btn" onclick="refreshActivePlayers()">Actualiser</button>
+            <div id="active-players-container" class="active-players-list">
+                <div class="loading">Chargement des joueurs...</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="admin-section">
+            <h3>⚡ Actions rapides</h3>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="admin-btn" onclick="kickAllPlayers()">Déconnecter tous les joueurs</button>
+                <button class="admin-btn" onclick="endAllGames()">Terminer toutes les parties</button>
+                <button class="admin-btn" onclick="viewServerLogs()">Voir les logs serveur</button>
+                <button class="admin-btn" onclick="exportGameData()">Exporter données</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/admin_dashboard.js"></script>
+</body>
+</html>
