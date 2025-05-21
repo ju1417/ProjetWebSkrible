@@ -69,6 +69,8 @@ const gameRoom: GameRoom = {
 
 const connectedClients = new Map<WebSocket, Player>();
 
+var activityLog = [];
+
 // ==================== CONFIGURATION EXPRESS ====================
 
 const app = new Application();
@@ -78,7 +80,7 @@ const router = new Router();
 app.use(oakCors({
   origin: FRONTEND_URL, // Plus sécurisé que "*"
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Admin-Username"], // Ajoutez X-Admin-Username ici
   credentials: true
 }));
 
@@ -104,6 +106,7 @@ router.post("/api/register", async (ctx) => {
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
         password VARCHAR(100) NOT NULL,
+        isadmin BOOLEAN DEFAULT false,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -122,8 +125,8 @@ router.post("/api/register", async (ctx) => {
     // Hacher le mot de passe et insérer
     const hashedPassword = await hashPassword(password);
     const result = await db.queryObject(
-      "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id, username",
-      [username, hashedPassword]
+      "INSERT INTO users (username, password, isadmin) VALUES ($1, $2, $3) RETURNING id, username, isadmin",
+      [username, hashedPassword, false]
     );
     
     ctx.response.status = 201;
@@ -178,7 +181,10 @@ router.post("/api/login", async (ctx) => {
       ctx.response.body = { error: "Nom d'utilisateur ou mot de passe incorrect" };
       return;
     }
-    
+
+    // Journaliser la connexion réussie
+    logConnection(username);    
+
     ctx.response.status = 200;
     ctx.response.body = {
       success: true,
@@ -193,6 +199,64 @@ router.post("/api/login", async (ctx) => {
   }
 });
 
+// Fonction pour se déconnecter
+router.post("/api/logout", async (ctx) => {
+  try {
+    const body = await ctx.request.body.value;
+    const { username } = body;
+    
+    console.log(`📤 Déconnexion de l'utilisateur: ${username}`);
+    
+    // Journaliser la déconnexion
+    if (username) {
+      logDisconnection(username);
+    }
+    
+    ctx.response.body = { success: true };
+  } catch (error) {
+    console.error("Erreur déconnexion:", error);
+    ctx.response.status = 500;
+    ctx.response.body = { error: "Erreur serveur" };
+  }
+});
+
+// ===================== JOURNAL D'ACTIVITEES ====================
+
+// Fonction pour journaliser les connexions
+function logConnection(username) {
+  const activity = {
+    message: `${username} s'est connecté`,
+    type: "connection",
+    timestamp: new Date()
+  };
+  
+  activityLog.unshift(activity);
+  
+  // Garder seulement les 50 dernières entrées
+  if (activityLog.length > 50) {
+    activityLog.pop();
+  }
+  
+  console.log(`[ACTIVITY] Connection: ${username} s'est connecté`);
+}
+
+
+// Fonction pour journaliser les déconnexions
+function logDisconnection(username) {
+  const activity = {
+    message: `${username} s'est déconnecté`,
+    type: "disconnection",
+    timestamp: new Date()
+  };
+  
+  activityLog.unshift(activity);
+  
+  if (activityLog.length > 50) {
+    activityLog.pop();
+  }
+  
+  console.log(`[ACTIVITY] Disconnection: ${username} s'est déconnecté`);
+}
 // ==================== ROUTES DU JEU ====================
 
 // Mot aléatoire
@@ -270,6 +334,258 @@ async function getUserIdByUsername(username: string): Promise<number | null> {
         return null;
     }
 }
+
+
+// Middleware simple pour vérifier les droits admin
+async function verifyAdminMiddleware(username: string): Promise<boolean> {
+    try {
+        if (!db.connected) await db.connect();
+        
+        const userResult = await db.queryObject(
+            "SELECT isadmin FROM users WHERE username = $1",
+            [username]
+        );
+        
+        return userResult.rows.length > 0 && userResult.rows[0].isadmin === true;
+    } catch (error) {
+        console.error("Erreur vérification admin:", error);
+        return false;
+    }
+}
+// Stats admin
+router.get("/api/admin/stats", async (ctx) => {
+    try {
+        const adminUsername = ctx.request.headers.get('X-Admin-Username');
+        
+        if (!adminUsername || !(await verifyAdminMiddleware(adminUsername))) {
+            ctx.response.status = 403;
+            ctx.response.body = { error: "Droits administrateur requis" };
+            return;
+        }
+        
+        if (!db.connected) await db.connect();
+        
+        // Total utilisateurs
+        const totalUsersResult = await db.queryObject("SELECT COUNT(*) as count FROM users");
+        const totalUsers = Number(totalUsersResult.rows[0].count);
+        
+        // Total parties
+        const totalGamesResult = await db.queryObject("SELECT COUNT(*) as count FROM games");
+        const totalGames = Number(totalGamesResult.rows[0].count);
+        
+        // Parties aujourd'hui
+        const gamesTodayResult = await db.queryObject(`
+            SELECT COUNT(*) as count 
+            FROM games 
+            WHERE DATE(created_at) = CURRENT_DATE
+        `);
+        const gamesToday = Number(gamesTodayResult.rows[0].count);
+        
+        // Stats en temps réel du jeu actuel
+        const activeGames = gameRoom.gameState !== 'waiting' ? 1 : 0;
+        const activePlayers = gameRoom.players.size;
+        
+        const stats = {
+            activeGames,
+            activePlayers,
+            totalUsers,
+            gamesToday,
+            totalGames,
+            averageGameDuration: 8 // Exemple statique pour l'instant
+        };
+        
+        ctx.response.body = { success: true, stats };
+        
+    } catch (error) {
+        console.error("Erreur stats admin:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Erreur serveur" };
+    }
+});
+
+// Parties actives
+router.get("/api/admin/active-games", async (ctx) => {
+    try {
+        const adminUsername = ctx.request.headers.get('X-Admin-Username');
+        
+        if (!adminUsername || !(await verifyAdminMiddleware(adminUsername))) {
+            ctx.response.status = 403;
+            ctx.response.body = { error: "Droits administrateur requis" };
+            return;
+        }
+        
+        const activeGames = [];
+        
+        // S'il y a une partie active
+        if (gameRoom.players.size > 0) {
+            const players = Array.from(gameRoom.players.values());
+            const creator = gameRoom.gameCreator ? gameRoom.players.get(gameRoom.gameCreator) : null;
+            
+            activeGames.push({
+                id: 1, // ID temporaire
+                players: players.map(p => p.username),
+                status: gameRoom.gameState,
+                currentRound: gameRoom.currentRound,
+                totalRounds: gameRoom.totalRounds,
+                creator: creator?.username || 'Inconnu',
+                startTime: new Date() // Approximation
+            });
+        }
+        
+        ctx.response.body = { success: true, games: activeGames };
+        
+    } catch (error) {
+        console.error("Erreur parties actives:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Erreur serveur" };
+    }
+});
+
+// Joueurs actifs
+router.get("/api/admin/active-players", async (ctx) => {
+    try {
+        const adminUsername = ctx.request.headers.get('X-Admin-Username');
+        
+        if (!adminUsername || !(await verifyAdminMiddleware(adminUsername))) {
+            ctx.response.status = 403;
+            ctx.response.body = { error: "Droits administrateur requis" };
+            return;
+        }
+        
+        const activePlayers = [];
+        
+        // Récupérer tous les joueurs connectés
+        connectedClients.forEach((player, socket) => {
+            activePlayers.push({
+                id: player.userId || 0,
+                username: player.username,
+                currentGame: gameRoom.players.has(player.id) ? 1 : null,
+                isPlaying: player.isDrawing || gameRoom.gameState === 'playing',
+                connectedTime: new Date(Date.now() - Math.random() * 600000), // Approximation
+                socketId: player.id
+            });
+        });
+        
+        ctx.response.body = { success: true, players: activePlayers };
+        
+    } catch (error) {
+        console.error("Erreur joueurs actifs:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Erreur serveur" };
+    }
+});
+
+// Terminer une partie
+router.post("/api/admin/games/:gameId/end", async (ctx) => {
+    try {
+        const adminUsername = ctx.request.headers.get('X-Admin-Username');
+        
+        if (!adminUsername || !(await verifyAdminMiddleware(adminUsername))) {
+            ctx.response.status = 403;
+            ctx.response.body = { error: "Droits administrateur requis" };
+            return;
+        }
+        
+        const gameId = parseInt(ctx.params.gameId);
+        
+        // Pour l'instant, on peut seulement terminer la partie active (ID = 1)
+        if (gameId === 1 && gameRoom.players.size > 0) {
+            endGame();
+            
+            // Notifier tous les joueurs
+            broadcastMessage({
+                type: 'adminAction',
+                action: 'gameEnded',
+                message: `Partie terminée par un administrateur`,
+                admin: adminUsername
+            });
+            
+            ctx.response.body = { 
+                success: true, 
+                message: `Partie #${gameId} terminée par l'admin` 
+            };
+        } else {
+            ctx.response.status = 404;
+            ctx.response.body = { error: "Partie non trouvée ou déjà terminée" };
+        }
+        
+    } catch (error) {
+        console.error("Erreur terminer partie:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Erreur serveur" };
+    }
+});
+
+// Parties du jour
+router.get("/api/admin/today-games", async (ctx) => {
+    try {
+        const adminUsername = ctx.request.headers.get('X-Admin-Username');
+        
+        if (!adminUsername || !(await verifyAdminMiddleware(adminUsername))) {
+            ctx.response.status = 403;
+            ctx.response.body = { error: "Droits administrateur requis" };
+            return;
+        }
+        
+        if (!db.connected) await db.connect();
+        
+        // Récupérer toutes les parties du jour
+        const todayGamesResult = await db.queryObject(`
+            SELECT g.id, g.created_at, g.finished_at, g.total_rounds,
+                   uc.username as creator_username,
+                   uw.username as winner_username,
+                   (SELECT COUNT(*) FROM player_scores WHERE game_id = g.id) as player_count
+            FROM games g
+            LEFT JOIN users uc ON g.creator_id = uc.id
+            LEFT JOIN users uw ON g.winner_id = uw.id
+            WHERE DATE(g.created_at) = CURRENT_DATE
+            ORDER BY g.created_at DESC
+        `);
+        
+        const games = todayGamesResult.rows.map(game => ({
+            id: Number(game.id),
+            creator: game.creator_username,
+            winner: game.winner_username,
+            totalRounds: Number(game.total_rounds),
+            playerCount: Number(game.player_count),
+            createdAt: game.created_at,
+            finishedAt: game.finished_at,
+            duration: game.finished_at 
+                ? Math.round((new Date(game.finished_at) - new Date(game.created_at)) / 60000)
+                : null
+        }));
+        
+        ctx.response.body = { success: true, games };
+        
+    } catch (error) {
+        console.error("Erreur récupération parties du jour:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Erreur serveur" };
+    }
+});
+
+// Route API pour récupérer le journal d'activités - adaptée pour votre framework
+router.get("/api/admin/activity-log", (ctx) => {
+  console.log('📜 Journal d\'activités demandé');
+  console.log('📊 Taille du journal:', activityLog.length);
+  
+  // Compter les types d'activités
+  const types = {};
+  activityLog.forEach(a => {
+    types[a.type] = (types[a.type] || 0) + 1;
+  });
+  console.log('📊 Types d\'activités:', types);
+  
+  // Vérifier la présence de déconnexions
+  const disconnections = activityLog.filter(a => a.type === 'disconnection');
+  console.log('🔴 Nombre de déconnexions:', disconnections.length);
+  if (disconnections.length > 0) {
+    console.log('🔴 Exemple de déconnexion:', disconnections[0]);
+  }
+  
+  ctx.response.headers.set("Content-Type", "application/json");
+  ctx.response.body = activityLog;
+});
 
 
 // ==================== NOUVELLES ROUTES POUR LES STATS ====================
@@ -402,6 +718,8 @@ router.get("/api/game/:id", async (ctx) => {
         
         const game = gameResult.rows[0];
         const players = playersResult.rows;
+
+        
         
         // Convertir les BigInt en Number
         ctx.response.body = {
@@ -945,6 +1263,41 @@ async function handleWS(req: Request) {
                 case 'restartGame':
                     handleRestartGame(socket);
                     break;
+                case 'adminConnect':
+                    console.log(`🛡️ Admin connecté: ${message.username}`);
+                    socket.send(JSON.stringify({
+                        type: 'adminConnected',
+                        message: 'Connexion admin réussie'
+                    }));
+                    break;
+                case 'kickPlayer':
+                    console.log(`👢 Admin kick: ${message.username}`);
+                    // Trouver et déconnecter le joueur
+                    connectedClients.forEach((player, sock) => {
+                        if (player.id === message.socketId) {
+                            sock.close();
+                            handlePlayerLeave(sock);
+                        }
+                    });
+                    break;
+                case 'kickAllPlayers':
+                    console.log(`👢 Admin kick ALL players`);
+                    connectedClients.forEach((player, sock) => {
+                        if (sock !== socket) { // Ne pas déconnecter l'admin
+                            sock.close();
+                        }
+                    });
+                    break;
+                case 'endAllGames':
+                    console.log(`🛑 Admin end ALL games`);
+                    if (gameRoom.players.size > 0) {
+                        endGame();
+                        broadcastMessage({
+                            type: 'adminAction',
+                            message: 'Toutes les parties ont été terminées par un administrateur'
+                        });
+                    }
+                    break;
                 default:
                     console.log(`❓ Type de message non géré: ${message.type}`);
             }
@@ -960,6 +1313,9 @@ async function handleWS(req: Request) {
     
     socket.onclose = (event) => {
         console.log(`🔌 Connexion fermée (code: ${event.code})`);
+        if (socket.username) {
+            logDisconnection(socket.username);
+        }
         handlePlayerLeave(socket);
     };
     
@@ -1137,3 +1493,7 @@ async function updateUserStats(sortedPlayers: Player[]) {
     }
 }
 
+console.log('📋 Routes enregistrées:');
+router.routes().forEach((route, i) => {
+  console.log(`Route ${i + 1}: ${route.method} ${route.path}`);
+});

@@ -76,6 +76,17 @@ function setupEventListeners() {
         logoutBtn.addEventListener('click', logout);
     }
     
+    // Boutons d'actions rapides
+    const kickAllBtn = document.getElementById('kick-all-players-btn');
+    if (kickAllBtn) {
+        kickAllBtn.addEventListener('click', kickAllPlayers);
+    }
+    
+    const endAllGamesBtn = document.getElementById('end-all-games-btn');
+    if (endAllGamesBtn) {
+        endAllGamesBtn.addEventListener('click', endAllGames);
+    }
+    
     // Auto-refresh des données toutes les 10 secondes pour les parties actives
     setInterval(refreshActiveGames, 10000);
     setInterval(refreshActivePlayers, 15000);
@@ -135,6 +146,9 @@ function connectAdminWebSocket() {
 // Gérer les messages WebSocket
 function handleAdminWebSocketMessage(message) {
     switch (message.type) {
+        case 'adminConnected':
+            console.log('✅ Admin confirmé par le serveur:', message.message);
+            break;
         case 'gameUpdate':
             refreshActiveGames();
             break;
@@ -143,6 +157,15 @@ function handleAdminWebSocketMessage(message) {
             break;
         case 'systemUpdate':
             loadAdminData();
+            break;
+        case 'adminAction':
+            // Notification d'une action admin
+            showSuccess(message.message || 'Action effectuée avec succès');
+            refreshActiveGames();
+            refreshActivePlayers();
+            break;
+        case 'error':
+            showError(message.message || 'Erreur lors de l\'opération');
             break;
         default:
             console.log('📨 Message admin non géré:', message.type);
@@ -168,25 +191,35 @@ async function loadAdminData() {
 // Charger les statistiques admin
 async function loadAdminStats() {
     try {
-        // Simulation des statistiques (à remplacer par de vraies API)
-        updateStatDisplay('active-games-count', '2');
-        updateStatDisplay('active-players-count', '7');
-        updateStatDisplay('total-users-count', '156');
-        updateStatDisplay('games-today-count', '12');
+        const response = await fetch(`${API_URL}/admin/stats`, {
+            headers: {
+                'X-Admin-Username': currentAdmin.username
+            }
+        });
         
-        // TODO: Implémenter les vraies API pour récupérer ces stats
-        /*
-        const response = await fetch(`${API_URL}/admin/stats`);
-        if (response.ok) {
-            const stats = await response.json();
-            updateStatDisplay('active-games-count', stats.activeGames);
-            updateStatDisplay('active-players-count', stats.activePlayers);
-            updateStatDisplay('total-users-count', stats.totalUsers);
-            updateStatDisplay('games-today-count', stats.gamesToday);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
-        */
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.stats) {
+            throw new Error('Format de réponse invalide');
+        }
+        
+        const { stats } = data;
+        
+        updateStatDisplay('active-games-count', stats.activeGames);
+        updateStatDisplay('active-players-count', stats.activePlayers);
+        updateStatDisplay('total-users-count', stats.totalUsers);
+        updateStatDisplay('games-today-count', stats.gamesToday);
     } catch (error) {
         console.error('❌ Erreur chargement stats:', error);
+        // Mettre des valeurs par défaut en cas d'erreur
+        updateStatDisplay('active-games-count', '-');
+        updateStatDisplay('active-players-count', '-');
+        updateStatDisplay('total-users-count', '-');
+        updateStatDisplay('games-today-count', '-');
     }
 }
 
@@ -198,33 +231,23 @@ async function refreshActiveGames() {
     if (!container) return;
     
     try {
-        // Simulation des parties actives (à remplacer par vraie API)
-        const activeGames = [
-            {
-                id: 1,
-                players: ['Alice', 'Bob', 'Charlie'],
-                status: 'playing',
-                currentRound: 2,
-                totalRounds: 3,
-                creator: 'Alice',
-                startTime: new Date(Date.now() - 300000)
-            },
-            {
-                id: 2,
-                players: ['David', 'Eve'],
-                status: 'waiting',
-                currentRound: 0,
-                totalRounds: 2,
-                creator: 'David',
-                startTime: new Date(Date.now() - 120000)
+        const response = await fetch(`${API_URL}/admin/active-games`, {
+            headers: {
+                'X-Admin-Username': currentAdmin.username
             }
-        ];
+        });
         
-        // TODO: Remplacer par vraie API
-        /*
-        const response = await fetch(`${API_URL}/admin/active-games`);
-        const activeGames = await response.json();
-        */
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.games) {
+            throw new Error('Format de réponse invalide');
+        }
+        
+        const activeGames = data.games;
         
         if (activeGames.length === 0) {
             container.innerHTML = '<div class="no-data">Aucune partie active</div>';
@@ -241,10 +264,10 @@ async function refreshActiveGames() {
                     </span>
                     <br>
                     Créateur: ${game.creator} | 
-                    Joueurs: ${game.players.length} |
+                    Joueurs: ${Array.isArray(game.players) ? game.players.length : 0} |
                     Round: ${game.currentRound}/${game.totalRounds}
                     <br>
-                    <small>Démarrée: ${formatTime(game.startTime)}</small>
+                    <small>Démarrée: ${formatTime(new Date(game.startTime))}</small>
                 </div>
                 <div class="game-actions">
                     <button class="admin-btn" onclick="viewGameDetails(${game.id})">
@@ -271,39 +294,23 @@ async function refreshActivePlayers() {
     if (!container) return;
     
     try {
-        // Simulation des joueurs actifs (à remplacer par vraie API)
-        const activePlayers = [
-            {
-                id: 1,
-                username: 'Alice',
-                currentGame: 1,
-                isPlaying: true,
-                connectedTime: new Date(Date.now() - 600000),
-                socketId: 'socket-123'
-            },
-            {
-                id: 2,
-                username: 'Bob',
-                currentGame: 1,
-                isPlaying: true,
-                connectedTime: new Date(Date.now() - 450000),
-                socketId: 'socket-456'
-            },
-            {
-                id: 3,
-                username: 'David',
-                currentGame: 2,
-                isPlaying: false,
-                connectedTime: new Date(Date.now() - 180000),
-                socketId: 'socket-789'
+        const response = await fetch(`${API_URL}/admin/active-players`, {
+            headers: {
+                'X-Admin-Username': currentAdmin.username
             }
-        ];
+        });
         
-        // TODO: Remplacer par vraie API
-        /*
-        const response = await fetch(`${API_URL}/admin/active-players`);
-        const activePlayers = await response.json();
-        */
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.players) {
+            throw new Error('Format de réponse invalide');
+        }
+        
+        const activePlayers = data.players;
         
         if (activePlayers.length === 0) {
             container.innerHTML = '<div class="no-data">Aucun joueur connecté</div>';
@@ -318,17 +325,12 @@ async function refreshActivePlayers() {
                     ${player.currentGame ? `Partie #${player.currentGame}` : 'En attente'}
                     ${player.isPlaying ? ' (En jeu)' : ' (Lobby)'}
                     <br>
-                    <small>Connecté: ${formatTime(player.connectedTime)}</small>
+                    <small>Connecté: ${formatTimeFixed(player.connectedTime)}</small>
                 </div>
                 <div class="player-actions">
                     <button class="admin-btn warning" onclick="kickPlayer('${player.socketId}', '${player.username}')">
                         👢 Déconnecter
                     </button>
-                    ${player.currentGame ? `
-                        <button class="admin-btn" onclick="movePlayer(${player.id}, ${player.currentGame})">
-                            🔄 Déplacer
-                        </button>
-                    ` : ''}
                 </div>
             </div>
         `).join('');
@@ -348,31 +350,26 @@ async function endGame(gameId) {
     try {
         console.log(`🛑 Tentative de terminer la partie #${gameId}...`);
         
-        // TODO: Implémenter l'API pour terminer une partie
-        /*
         const response = await fetch(`${API_URL}/admin/games/${gameId}/end`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${currentAdmin.token}` // si vous utilisez des tokens
+                'X-Admin-Username': currentAdmin.username
             }
         });
         
         if (response.ok) {
-            showSuccess(`Partie #${gameId} terminée avec succès`);
+            const data = await response.json();
+            showSuccess(data.message || `Partie #${gameId} terminée avec succès`);
             refreshActiveGames();
         } else {
-            throw new Error('Erreur lors de la terminaison de la partie');
+            const error = await response.json();
+            throw new Error(error.error || 'Erreur lors de la terminaison de la partie');
         }
-        */
-        
-        // Simulation
-        showSuccess(`Partie #${gameId} terminée`);
-        setTimeout(refreshActiveGames, 1000);
         
     } catch (error) {
         console.error('❌ Erreur terminer partie:', error);
-        showError('Impossible de terminer la partie');
+        showError(error.message || 'Impossible de terminer la partie');
     }
 }
 
@@ -384,7 +381,6 @@ async function kickPlayer(socketId, username) {
     try {
         console.log(`👢 Tentative de déconnexion de ${username}...`);
         
-        // TODO: Envoyer via WebSocket pour déconnecter le joueur
         if (adminSocket && adminSocket.readyState === WebSocket.OPEN) {
             adminSocket.send(JSON.stringify({
                 type: 'kickPlayer',
@@ -405,16 +401,453 @@ async function kickPlayer(socketId, username) {
     }
 }
 
+// Fonction améliorée pour voir les détails d'une partie
 function viewGameDetails(gameId) {
     console.log(`👁️ Affichage détails partie #${gameId}`);
-    alert(`Fonctionnalité à implémenter : Détails de la partie #${gameId}`);
-    // TODO: Ouvrir un modal avec les détails de la partie
+    
+    // Créer un modal pour afficher les détails
+    const modal = document.createElement('div');
+    modal.className = 'game-details-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Détails de la partie #${gameId}</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="loading">Chargement des détails...</div>
+            </div>
+        </div>
+    `;
+    
+    // Ajouter le style du modal
+    const style = document.createElement('style');
+    style.textContent = `
+        .game-details-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .modal-header {
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e5e7eb;
+            background: #dc2626;
+            color: white;
+            border-radius: 10px 10px 0 0;
+        }
+        .modal-body {
+            padding: 20px;
+        }
+        .close-modal {
+            font-size: 24px;
+            cursor: pointer;
+        }
+        .close-modal:hover {
+            color: #f1f1f1;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+        }
+        .player-list {
+            margin-top: 15px;
+        }
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .player-row:last-child {
+            border-bottom: none;
+        }
+        .player-position {
+            display: inline-block;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            text-align: center;
+            border-radius: 50%;
+            background: #3b82f6;
+            color: white;
+            margin-right: 10px;
+        }
+        .game-info-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .game-info-label {
+            font-weight: bold;
+            width: 120px;
+        }
+        .error {
+            color: #dc2626;
+            text-align: center;
+            padding: 20px;
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(modal);
+    
+    // Fermer le modal quand on clique sur X
+    const closeBtn = modal.querySelector('.close-modal');
+    closeBtn.addEventListener('click', () => {
+        document.body.removeChild(modal);
+    });
+    
+    // Fermer en cliquant à l'extérieur
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            document.body.removeChild(modal);
+        }
+    });
+    
+    // Pour les parties en cours, utiliser l'API active-games
+    if (gameId === 0 || gameId === 1) {
+        // C'est une partie active en mémoire
+        fetch(`${API_URL}/admin/active-games`, {
+            headers: {
+                'X-Admin-Username': currentAdmin.username
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success || !data.games) {
+                    throw new Error('Format de réponse invalide');
+                }
+                
+                // Trouver la partie active correspondante
+                const game = data.games.find(g => g.id === gameId);
+                if (!game) {
+                    throw new Error('Partie non trouvée');
+                }
+                
+                displayActiveGameDetails(game, modal);
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showModalError(modal, error.message);
+            });
+    } else {
+        // Pour les parties terminées, utiliser l'API standard
+        fetch(`${API_URL}/game/${gameId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(game => {
+                displayFinishedGameDetails(game, modal);
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                showModalError(modal, error.message);
+            });
+    }
 }
 
-function movePlayer(playerId, currentGameId) {
-    console.log(`🔄 Déplacement joueur ${playerId} de la partie ${currentGameId}`);
-    alert(`Fonctionnalité à implémenter : Déplacer le joueur`);
-    // TODO: Interface pour déplacer un joueur vers une autre partie
+// Charger les parties du jour
+async function loadTodayGames() {
+    console.log('📅 Chargement des parties d\'aujourd\'hui...');
+    
+    const container = document.getElementById('today-games-container');
+    if (!container) return;
+    
+    try {
+        // Afficher l'état de chargement
+        container.innerHTML = '<div class="loading">Chargement des parties...</div>';
+        
+        const response = await fetch(`${API_URL}/admin/today-games`, {
+            headers: {
+                'X-Admin-Username': currentAdmin.username
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.games) {
+            throw new Error('Format de réponse invalide');
+        }
+        
+        const todayGames = data.games;
+        
+        if (todayGames.length === 0) {
+            container.innerHTML = '<div class="no-data">Aucune partie jouée aujourd\'hui</div>';
+            return;
+        }
+        
+        container.innerHTML = todayGames.map(game => `
+            <div class="game-history-item">
+                <div class="game-header">
+                    <strong>Partie #${game.id}</strong>
+                    <span class="game-time">${new Date(game.createdAt).toLocaleTimeString('fr-FR')}</span>
+                </div>
+                <div class="game-body">
+                    <div>Créateur: ${game.creator || 'Inconnu'}</div>
+                    <div>Joueurs: ${game.playerCount}</div>
+                    <div>Tours: ${game.totalRounds}</div>
+                    ${game.duration ? `<div>Durée: ${formatDuration(game.duration)}</div>` : ''}
+                    ${game.winner ? `<div>Gagnant: ${game.winner}</div>` : ''}
+                </div>
+                <div class="game-footer">
+                    <button class="admin-btn small" onclick="viewGameDetails(${game.id})">
+                        👁️ Voir détails
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        // Ajouter des styles spécifiques
+        const style = document.createElement('style');
+        style.textContent = `
+            .recent-games-list {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 1rem;
+                margin-top: 1rem;
+            }
+            
+            .game-history-item {
+                background: white;
+                border-radius: 8px;
+                padding: 1rem;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                border: 1px solid #e5e7eb;
+                transition: transform 0.2s;
+            }
+            
+            .game-history-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+            
+            .game-header {
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 0.5rem;
+                border-bottom: 1px solid #f3f4f6;
+                padding-bottom: 0.5rem;
+            }
+            
+            .game-time {
+                color: #6b7280;
+                font-size: 0.875rem;
+            }
+            
+            .game-body {
+                font-size: 0.875rem;
+                margin-bottom: 0.5rem;
+            }
+            
+            .game-footer {
+                display: flex;
+                justify-content: flex-end;
+                margin-top: 0.5rem;
+                padding-top: 0.5rem;
+                border-top: 1px solid #f3f4f6;
+            }
+            
+            .admin-btn.small {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+        `;
+        document.head.appendChild(style);
+        
+    } catch (error) {
+        console.error('❌ Erreur chargement parties du jour:', error);
+        container.innerHTML = '<div class="no-data">Erreur de chargement</div>';
+    }
+}
+
+// Formater la durée en minutes
+function formatDuration(minutes) {
+    if (minutes < 60) {
+        return `${minutes} min`;
+    } else {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return `${hours}h${mins > 0 ? ` ${mins}min` : ''}`;
+    }
+}
+
+// Ajouter cette fonction au chargement initial des données
+// Modifier la fonction loadAdminData pour inclure les parties du jour
+async function loadAdminData() {
+    console.log('📊 Chargement des données admin...');
+    
+    try {
+        await Promise.all([
+            loadAdminStats(),
+            refreshActiveGames(),
+            refreshActivePlayers(),
+            loadTodayGames()  // ✅ Ajouté ici
+        ]);
+    } catch (error) {
+        console.error('❌ Erreur chargement données admin:', error);
+        showError('Erreur lors du chargement des données admin');
+    }
+}
+
+// Afficher les détails d'une partie active
+function displayActiveGameDetails(game, modal) {
+    const modalBody = modal.querySelector('.modal-body');
+    
+    let content = `
+        <div class="game-info">
+            <div class="game-info-row">
+                <div class="game-info-label">Créateur:</div>
+                <div>${game.creator || 'Inconnu'}</div>
+            </div>
+            <div class="game-info-row">
+                <div class="game-info-label">Tours:</div>
+                <div>${game.totalRounds || 0}</div>
+            </div>
+            <div class="game-info-row">
+                <div class="game-info-label">Tour actuel:</div>
+                <div>${game.currentRound || 0}/${game.totalRounds || 0}</div>
+            </div>
+            <div class="game-info-row">
+                <div class="game-info-label">Statut:</div>
+                <div>${getStatusText(game.status)}</div>
+            </div>
+            <div class="game-info-row">
+                <div class="game-info-label">Démarré:</div>
+                <div>${formatTime(new Date(game.startTime))}</div>
+            </div>
+        </div>
+    `;
+    
+    // Ajouter la liste des joueurs si disponible
+    if (game.players && game.players.length > 0) {
+        content += `
+            <h4>Joueurs (${game.players.length})</h4>
+            <div class="player-list">
+        `;
+        
+        game.players.forEach((player, index) => {
+            content += `
+                <div class="player-row">
+                    <div>
+                        <span class="player-position">${index + 1}</span>
+                        ${player}
+                    </div>
+                </div>
+            `;
+        });
+        
+        content += '</div>';
+    } else {
+        content += '<p>Aucun joueur dans cette partie.</p>';
+    }
+    
+    modalBody.innerHTML = content;
+}
+
+// Afficher les détails d'une partie terminée
+function displayFinishedGameDetails(game, modal) {
+    const modalBody = modal.querySelector('.modal-body');
+    
+    let content = `
+        <div class="game-info">
+            <div class="game-info-row">
+                <div class="game-info-label">Créateur:</div>
+                <div>${game.creator || 'Inconnu'}</div>
+            </div>
+            <div class="game-info-row">
+                <div class="game-info-label">Tours:</div>
+                <div>${game.total_rounds || 0}</div>
+            </div>
+            <div class="game-info-row">
+                <div class="game-info-label">Statut:</div>
+                <div>${game.finished_at ? 'Terminée' : 'En cours'}</div>
+            </div>
+            <div class="game-info-row">
+                <div class="game-info-label">Démarré le:</div>
+                <div>${new Date(game.created_at).toLocaleString('fr-FR')}</div>
+            </div>
+            ${game.finished_at ? `
+                <div class="game-info-row">
+                    <div class="game-info-label">Terminé le:</div>
+                    <div>${new Date(game.finished_at).toLocaleString('fr-FR')}</div>
+                </div>
+            ` : ''}
+            ${game.winner ? `
+                <div class="game-info-row">
+                    <div class="game-info-label">Gagnant:</div>
+                    <div>${game.winner}</div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+    
+    // Ajouter la liste des joueurs si disponible
+    if (game.players && game.players.length > 0) {
+        content += `
+            <h4>Joueurs (${game.players.length})</h4>
+            <div class="player-list">
+        `;
+        
+        game.players.forEach(player => {
+            content += `
+                <div class="player-row">
+                    <div>
+                        <span class="player-position">${player.position}</span>
+                        ${player.username}
+                    </div>
+                    <div>${player.score} points</div>
+                </div>
+            `;
+        });
+        
+        content += '</div>';
+    } else {
+        content += '<p>Aucun joueur dans cette partie.</p>';
+    }
+    
+    modalBody.innerHTML = content;
+}
+
+// Afficher une erreur dans le modal
+function showModalError(modal, errorMessage) {
+    const modalBody = modal.querySelector('.modal-body');
+    modalBody.innerHTML = `
+        <div class="error">
+            <p>Impossible de récupérer les détails de la partie.</p>
+            <p>Erreur: ${errorMessage}</p>
+        </div>
+    `;
 }
 
 // Actions rapides
@@ -429,7 +862,8 @@ async function kickAllPlayers() {
         if (adminSocket && adminSocket.readyState === WebSocket.OPEN) {
             adminSocket.send(JSON.stringify({
                 type: 'kickAllPlayers',
-                adminId: currentAdmin.id
+                adminId: currentAdmin.id,
+                username: currentAdmin.username
             }));
             
             showSuccess('Tous les joueurs ont été déconnectés');
@@ -437,6 +871,8 @@ async function kickAllPlayers() {
                 refreshActivePlayers();
                 refreshActiveGames();
             }, 1000);
+        } else {
+            throw new Error('WebSocket admin non connecté');
         }
         
     } catch (error) {
@@ -456,29 +892,20 @@ async function endAllGames() {
         if (adminSocket && adminSocket.readyState === WebSocket.OPEN) {
             adminSocket.send(JSON.stringify({
                 type: 'endAllGames',
-                adminId: currentAdmin.id
+                adminId: currentAdmin.id,
+                username: currentAdmin.username
             }));
             
             showSuccess('Toutes les parties ont été terminées');
             setTimeout(refreshActiveGames, 1000);
+        } else {
+            throw new Error('WebSocket admin non connecté');
         }
         
     } catch (error) {
         console.error('❌ Erreur terminer toutes parties:', error);
         showError('Erreur lors de la terminaison massive');
     }
-}
-
-function viewServerLogs() {
-    console.log('📋 Affichage des logs serveur...');
-    alert('Fonctionnalité à implémenter : Consultation des logs serveur');
-    // TODO: Ouvrir une fenêtre avec les logs du serveur
-}
-
-function exportGameData() {
-    console.log('📊 Export des données de jeu...');
-    alert('Fonctionnalité à implémenter : Export des données (CSV, JSON)');
-    // TODO: Générer et télécharger un export des données
 }
 
 // Fonctions utilitaires
@@ -493,12 +920,18 @@ function getStatusText(status) {
     const statusMap = {
         'waiting': 'En attente',
         'playing': 'En cours',
+        'roundEnd': 'Fin de tour',
         'finished': 'Terminée'
     };
     return statusMap[status] || status;
 }
 
 function formatTime(date) {
+    // Version sécurisée qui vérifie si l'input est bien une Date
+    if (!(date instanceof Date) || isNaN(date.getTime())) {
+        return "À l'instant";
+    }
+    
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -510,6 +943,16 @@ function formatTime(date) {
     if (diffHours < 24) return `Il y a ${diffHours}h`;
     
     return date.toLocaleDateString('fr-FR');
+}
+
+function formatTimeFixed(timestamp) {
+    // Pour gérer le cas où timestamp est un string ou un objet
+    try {
+        const date = new Date(timestamp);
+        return formatTime(date);
+    } catch (e) {
+        return "À l'instant";
+    }
 }
 
 function showSuccess(message) {
@@ -567,4 +1010,137 @@ style.textContent = `
         to { transform: translateX(100%); opacity: 0; }
     }
 `;
+
+// Variables globales
+let activityLog = [];
+const MAX_LOG_ENTRIES = 50; // Nombre maximum d'entrées dans le journal
+
+// Initialisation au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("DOM chargé, initialisation des écouteurs...");
+  
+  // Ces éléments existent-ils lorsque ce code s'exécute?
+  const logoutBtn = document.getElementById('logout-btn');
+  console.log("Bouton de déconnexion trouvé:", logoutBtn);
+  
+  if (logoutBtn) {
+    console.log("Ajout de l'écouteur d'événement au bouton de déconnexion");
+    logoutBtn.addEventListener('click', logout);
+  } else {
+    console.error("❌ Bouton de déconnexion non trouvé dans le DOM");
+  }
+  
+  // Actualiser le journal d'activités
+  refreshActivityLog();
+});
+
+// Fonction pour afficher le journal d'activités
+function refreshActivityLog() {
+  console.log("Actualisation du journal d'activités...");
+  
+  const activityContainer = document.getElementById('activity-log-container');
+  if (!activityContainer) {
+    console.error("Container d'activités non trouvé");
+    return;
+  }
+  
+  activityContainer.innerHTML = '<div class="loading">Chargement des activités...</div>';
+  
+  fetch('/api/admin/activity-log')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Erreur HTTP: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then(activities => {
+      console.log("Activités reçues:", activities);
+      
+      if (!Array.isArray(activities)) {
+        console.warn("Les données reçues ne sont pas un tableau:", activities);
+        activityContainer.innerHTML = '<div class="error">Format de données incorrect</div>';
+        return;
+      }
+      
+      displayActivities(activityContainer, activities);
+    })
+    .catch(error => {
+      console.error('Erreur:', error);
+      activityContainer.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+      
+      // Afficher des données fictives en cas d'erreur
+      setTimeout(() => {
+        showMockActivities(activityContainer);
+      }, 2000);
+    });
+}
+
+
+// Ajouter une nouvelle activité au log (pour les événements en temps réel si vous utilisez WebSockets)
+function addActivityToLog(activity) {
+    // Créer un nouvel élément d'activité
+    const logItem = document.createElement('div');
+    logItem.className = `log-item ${activity.type}-action`;
+    
+    // Formater l'heure
+    const time = formatTime(new Date(activity.timestamp));
+    
+    // Créer le contenu HTML
+    logItem.innerHTML = `
+        <span class="log-time">${time}</span>
+        <span class="log-event">${activity.message}</span>
+    `;
+    
+    // Ajouter au début du conteneur
+    const activityContainer = document.getElementById('activity-log-container');
+    activityContainer.insertBefore(logItem, activityContainer.firstChild);
+    
+    // Animation pour la nouvelle activité
+    logItem.style.backgroundColor = '#E6F2FF';
+    setTimeout(() => {
+        logItem.style.backgroundColor = '';
+    }, 2000);
+    
+    // Limiter le nombre d'entrées
+    const items = activityContainer.querySelectorAll('.log-item');
+    if (items.length > MAX_LOG_ENTRIES) {
+        activityContainer.removeChild(items[items.length - 1]);
+    }
+}
+// Fonction pour afficher des données de test en attendant l'intégration serveur
+function refreshActivityLog() {
+  const activityContainer = document.getElementById('activity-log-container');
+  if (!activityContainer) return;
+  
+  activityContainer.innerHTML = '<div class="loading">Chargement des activités...</div>';
+  
+  fetch(`${API_URL}/admin/activity-log`)
+    .then(response => {
+      // Vérifier d'abord ce que contient la réponse brute
+      return response.text().then(text => {
+        console.log("Réponse brute de l'API:", text);
+        
+        // Si le texte est vide ou non valide, afficher un message
+        if (!text || text.trim() === '') {
+          throw new Error('Réponse vide du serveur');
+        }
+        
+        try {
+          // Essayer de parser manuellement
+          return JSON.parse(text);
+        } catch (e) {
+          console.error("Erreur de parsing JSON:", e);
+          throw new Error(`Réponse non-JSON: ${text.substring(0, 100)}...`);
+        }
+      });
+    })
+    .then(activities => {
+      displayActivities(activityContainer, activities);
+    })
+    .catch(error => {
+      console.error('Erreur:', error);
+      activityContainer.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+    });
+}
+
 document.head.appendChild(style);

@@ -138,15 +138,38 @@ function setupEventListeners() {
     }
 }
 
-// Fonction de déconnexion - ✅ CORRIGÉE (accolade manquante)
+// Fonction de déconnexion 
 function logout() {
-    console.log('🚪 Déconnexion...');
-    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-        // Nettoyer TOUS les storages avant déconnexion
-        sessionStorage.clear();
-        localStorage.removeItem('currentUser');
-        window.location.href = 'index.html';
-    }
+  console.log('🚪 Déconnexion...');
+  
+  if (!confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+    return;
+  }
+  
+  // Récupérer les informations utilisateur
+  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+  const username = currentUser.username;
+  
+  if (username) {
+    console.log('📤 Envoi beacon de déconnexion...');
+    
+    // Créer les données à envoyer
+    const logoutData = JSON.stringify({ username });
+    
+    // Utiliser sendBeacon pour envoyer la requête même si la page se redirige
+    const beaconSent = navigator.sendBeacon(
+      '/api/logout', 
+      new Blob([logoutData], { type: 'application/json' })
+    );
+    
+    console.log('📤 Beacon envoyé:', beaconSent);
+  }
+  
+  // Nettoyer et rediriger
+  console.log('🧹 Nettoyage local et redirection...');
+  sessionStorage.clear();
+  localStorage.removeItem('currentUser');
+  window.location.href = 'index.html';
 }
 
 // Lancer une nouvelle partie - AVEC LOGS DÉTAILLÉS

@@ -1,0 +1,221 @@
+/* admin-dashboard.css - Style principal pour le dashboard administrateur */
+
+/* Layout principal */ .admin-container { max-width: 1200px; margin: 2rem auto 4rem; padding: 0 1.5rem; }
+
+/* Affichage en deux colonnes */ .admin-content { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
+/* Style pour admin-display dans la navigation */ #admin-display { color: #D3E5FF; font-size: 1.1rem; }
+
+#admin-name { color: #ffd700; font-weight: 700; }
+
+/* Stats des administrateurs */ .admin-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+
+.admin-stat-card { background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%); border-radius: 15px; padding: 1.2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; border-top: 4px solid #4A90E2; transition: all 0.3s ease; }
+
+.admin-stat-card:nth-child(1) { border-top-color: #4A90E2; /* Bleu pour parties actives */ }
+
+.admin-stat-card:nth-child(2) { border-top-color: #10b981; /* Vert pour joueurs connectés */ }
+
+.admin-stat-card:nth-child(3) { border-top-color: #8b5cf6; /* Violet pour total users */ }
+
+.admin-stat-card:nth-child(4) { border-top-color: #f59e0b; /* Orange pour parties du jour */ }
+
+.admin-stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
+
+.admin-stat-card h3 { font-size: 0.9rem; color: #6b7280; margin-bottom: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+
+.admin-stat-card .stat-value { font-size: 2.2rem; font-weight: bold; color: #374151; display: block; text-shadow: 1px 1px 0px rgba(255,255,255,0.5); }
+
+/* Sections administratives */ .admin-section { background: white; border-radius: 15px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+.admin-section h3 { color: #4A90E2; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; font-size: 1.4rem; }
+
+/* Boutons d'actualisation */ .refresh-btn { background-color: #4A90E2; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: bold; margin-bottom: 0.8rem; transition: all 0.3s ease; box-shadow: 0 2px 6px rgba(74, 144, 226, 0.3); font-size: 0.9rem; }
+
+.refresh-btn:hover { background-color: #2C6EB2; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(74, 144, 226, 0.4); }
+
+/* Listes d'éléments - hauteur réduite / .active-games-list, .active-players-list, .recent-games-list { max-height: 250px; / Hauteur réduite / overflow-y: auto; scroll-behavior: smooth; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; color: #2b4ba0; / Couleur bleu foncé pour le texte */ }
+
+/* Stylisation de la scrollbar */ .active-games-list::-webkit-scrollbar, .active-players-list::-webkit-scrollbar, .recent-games-list::-webkit-scrollbar { width: 5px; }
+
+.active-games-list::-webkit-scrollbar-track, .active-players-list::-webkit-scrollbar-track, .recent-games-list::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+
+.active-games-list::-webkit-scrollbar-thumb, .active-players-list::-webkit-scrollbar-thumb, .recent-games-list::-webkit-scrollbar-thumb { background: #4A90E2; border-radius: 10px; }
+
+.active-games-list::-webkit-scrollbar-thumb:hover, .active-players-list::-webkit-scrollbar-thumb:hover, .recent-games-list::-webkit-scrollbar-thumb:hover { background: #2C6EB2; }
+
+/* Items des jeux et joueurs / .game-item, .player-item { display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 1rem; / Padding réduit */ border-bottom: 1px solid #e5e7eb; transition: all 0.2s; color: #2b4ba0; }
+
+.game-item:last-child, .player-item:last-child { border-bottom: none; }
+
+.game-item:hover, .player-item:hover { background: #edf2f7; }
+
+/* Ciblage spécifique des textes dans les listes */ #active-games-container .loading, #active-players-container .loading, #today-games-container .loading { color: #2b4ba0; }
+
+/* Ciblage de tous les éléments dans les listes */ .active-games-list *, .active-players-list *, .recent-games-list * { color: #2b4ba0; }
+
+/* Pour les éléments générés dynamiquement */ #active-games-container div, #active-players-container div, #today-games-container div { color: #2b4ba0; }
+
+/* Boutons admin / .admin-btn { background-color: #4A90E2; color: white; border: none; padding: 0.5rem 1rem; / Padding réduit / border-radius: 8px; cursor: pointer; font-size: 0.85rem; / Taille réduite */ font-weight: 600; transition: all 0.2s; }
+
+.admin-btn:hover { background-color: #2C6EB2; transform: translateY(-2px); }
+
+.admin-btn.danger { background-color: #ef4444; }
+
+.admin-btn.danger:hover { background-color: #dc2626; }
+
+.admin-btn.warning { background-color: #f59e0b; }
+
+.admin-btn.warning:hover { background-color: #d97706; }
+
+/* Indicateurs de statut / .game-status { display: inline-block; padding: 0.2rem 0.6rem; / Padding réduit / border-radius: 15px; font-size: 0.7rem; / Taille réduite */ font-weight: bold; margin-right: 0.5rem; }
+
+.status-waiting { background-color: #fef3c7; color: #92400e; }
+
+.status-playing { background-color: #d1fae5; color: #065f46; }
+
+.status-finished { background-color: #e5e7eb; color: #374151; }
+
+/* Zone des boutons d'action rapide */ .action-buttons { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 0.5rem; }
+
+.action-buttons .admin-btn { padding: 0.8rem 1.2rem; font-size: 0.9rem; }
+
+/* États des listes / .loading { text-align: center; color: #2b4ba0; / Couleur bleu foncé pour le texte "Chargement" / font-style: italic; padding: 1.5rem; / Padding réduit */ font-size: 0.9rem; }
+
+.no-data { text-align: center; color: #2b4ba0; /* Couleur bleu foncé pour le texte "Aucune donnée" / background: #f9fafb; padding: 2rem 1.5rem; / Padding réduit */ border-radius: 8px; font-style: italic; }
+
+/* Animations */ @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.admin-stats, .admin-section { animation: fadeIn 0.6s ease-out; }
+
+.admin-stats { animation-delay: 0.1s; }
+
+.admin-section:nth-of-type(1) { animation-delay: 0.2s; }
+
+.admin-section:nth-of-type(2) { animation-delay: 0.3s; }
+
+.admin-section:nth-of-type(3) { animation-delay: 0.4s; }
+
+.admin-section:nth-of-type(4) { animation-delay: 0.5s; }
+
+/* Responsive Design */ @media (max-width: 880px) { .admin-content { grid-template-columns: 1fr; }
+
+.admin-container {
+    padding: 0 1rem;
+}
+
+.admin-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+}
+
+footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 0.9rem;
+}
+
+/* Ajouter du padding en bas du main pour éviter que le contenu ne soit caché par le footer */
+main {
+    padding-bottom: 3rem; /* Hauteur du footer + marge */
+}
+
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 colonnes de taille égale */
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.admin-stat-card {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 15px;
+    padding: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    text-align: center;
+    border-top: 4px solid #4A90E2;
+    transition: all 0.3s ease;
+}
+
+@media (max-width: 880px) {
+    .admin-stats {
+        grid-template-columns: repeat(2, 1fr); /* 2 colonnes sur tablettes */
+        gap: 0.8rem;
+    }
+}
+
+@media (max-width: 580px) {
+    .admin-stats {
+        grid-template-columns: 1fr; /* 1 colonne sur mobiles */
+    }
+}
+
+/* Journal d'activités */
+.activity-log {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 250px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.log-item {
+    display: flex;
+    align-items: center;
+    padding: 0.7rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 3px solid #4A90E2;
+    transition: all 0.2s;
+}
+
+.log-item:hover {
+    background-color: #edf2f7;
+    transform: translateX(3px);
+}
+
+.log-time {
+    font-weight: 600;
+    color: #2b4ba0;
+    padding-right: 1rem;
+    border-right: 1px solid #e5e7eb;
+    margin-right: 1rem;
+    min-width: 60px;
+}
+
+.log-event {
+    color: #2b4ba0;
+}
+
+.log-item.user-action {
+    border-left-color: #10b981; /* Vert pour actions utilisateur */
+}
+
+.log-item.admin-action {
+    border-left-color: #8b5cf6; /* Violet pour actions admin */
+}
+
+.log-item.game-action {
+    border-left-color: #f59e0b; /* Orange pour événements de jeu */
+}
+
+.log-item.system-action {
+    border-left-color: #ef4444; /* Rouge pour événements système */
+}
+
+
+/* Journal d'activités - Connexions et déconnexions */
+
+.connection-action {
+    border-left-color: #10b981; /* Vert pour les connexions */
+}
+
+.disconnection-action {
+    border-left-color: #ef4444; /* Rouge pour les déconnexions */
+}
+

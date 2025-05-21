@@ -64,3 +64,4 @@ async function handler(req: Request): Promise<Response> {
 
 console.log(`Serveur frontend démarré sur http://localhost:${PORT}`);
 await serve(handler, { port: PORT });
+
