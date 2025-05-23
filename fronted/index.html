@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skribble - Jeu de dessin</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/index.css">
 </head>
 <body>
     <header>
-        <h1>Skribble</h1>
+        <div class="title-banner">
+            <h1>Skribble</h1>
+        </div>
         <nav id="main-nav">
             <ul>
                 <li><a href="#" id="nav-home" class="active">Accueil</a></li>
@@ -17,21 +19,56 @@
             </ul>
         </nav>
     </header>
-
+    
     <main>
         <section id="home-section" class="section-active">
             <h2>Bienvenue sur Skribble!</h2>
-            <p>Un jeu où vous devrez dessiner et deviner ce que les autres joueurs dessinent.</p>
-            <!-- Ajoutez ce bouton pour accéder au jeu -->
-            <div style="margin: 20px 0;">
-                <a href="game.html" class="btn" style="display: inline-block; padding: 10px 20px; background-color: #28a745; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                    Jouer maintenant
-                </a>
+            <p>Un jeu où vous devrez dessiner et deviner ce que les autres joueurs dessinent. </p>
+        
+            <div class="game-rules">
+                <h3>🎯 But du jeu</h3>
+                <p>Devine le mot que le dessinateur essaye de représenter avant les autres !</p>
+            
+                <h3>✏️ Déroulement</h3>
+                <ul>
+                    <p>Un joueur dessine un mot choisi automatiquement.</p>
+                    <p>Les autres doivent le deviner en <strong>60, 90 ou 120 secondes</strong> (au choix à la création de la partie).</p>
+                </ul>
+            
+                <h3>💯 Points</h3>
+                <ul>
+                    <p>Chaque bonne réponse rapporte <strong>100 points</strong>, toujours.</p>
+                </ul>
+            
+                <h3>📋 Paramètres de partie</h3>
+                <ul>
+                    <p>Nombre de manches : <strong>2, 3, 5 ou 10</strong> à choisir au début.</p>
+                    <p>Un seul mot est proposé par manche (pas de liste de mots).</li>
+                </ul>
+            
+                <h3>⚠️ Règles</h3>
+                <ul>
+                    <p>Pas de lettres, chiffres ou mots dans le dessin !</li>
+                    <p>Respect et fair-play obligatoires !</li>
+                </ul>
+            
+                <h3>🧪 Modes spéciaux</h3>
+                <ul>
+                    <p> <strong> Mode rapide :</strong> 30 secondes par dessin</p>
+                    <p> <strong> Mode "Mot complexe":</strong> uniquement des mots très durs</p>
+                    <p> <strong> Mode mystère : </strong> tu dessines un mot... que toi-même tu ne connais pas ? 😈</p>
+                
+                <p><em>Bientôt disponibles dans une future mise à jour si vous êtes libre pendant les vacances… 😉</em></p>
             </div>
-            <button id="test-api">Tester l'API</button>
-            <div id="api-result"></div>
+        
+            <!-- Bloc de message stylisé -->
+            <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px; text-align: center;">
+                <p style="margin-bottom: 0; color: #6c757d;">
+                    Connectez-vous ou inscrivez-vous pour commencer à jouer !
+                </p>
+            </div>
         </section>
-
+        
         <section id="login-section" class="section-hidden">
             <h2>Connexion</h2>
             <form id="login-form">
@@ -46,22 +83,22 @@
                 <button type="submit">Se connecter</button>
             </form>
         </section>
-
+        
         <section id="register-section" class="section-hidden">
             <h2>Inscription</h2>
             <form id="register-form">
-              <input type="text" id="register-username" placeholder="Nom d'utilisateur" required />
-              <input type="password" id="register-password" placeholder="Mot de passe" required />
-              <input type="password" id="register-confirm-password" placeholder="Confirmez le mot de passe" required />
-              <button type="submit">S'inscrire</button>
+                <input type="text" id="register-username" placeholder="Nom d'utilisateur" required />
+                <input type="password" id="register-password" placeholder="Mot de passe" required />
+                <input type="password" id="register-confirm-password" placeholder="Confirmez le mot de passe" required />
+                <button type="submit">S'inscrire</button>
             </form>
         </section>
     </main>
-
+    
     <footer>
         <p>&copy; 2025 - Skribble</p>
     </footer>
-
+    
     <script src="assets/js/main.js" type="module"></script>
 </body>
 </html>

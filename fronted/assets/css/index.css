@@ -1,0 +1,283 @@
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-image: url('/assets/backgroundSkribble.png');
+  background-repeat: repeat;
+  background-size: auto;
+  background-color: #2b4ba0;
+  font-family: sans-serif;
+  color: white;
+}
+
+/* Bloc de règles du jeu */
+.game-rules {
+  background-color: #EAF4FF;
+  color: #2B2B2B;
+  border-radius: 15px;
+  padding: 1.5rem;
+  line-height: 1.6;
+  font-size: 1.05rem;
+  box-shadow: 0 0 10px #4A90E2AA;
+  margin: 2rem 0;
+}
+
+.game-rules h3 {
+  color: #4A90E2;
+  margin-top: 1.4rem;
+}
+
+.game-rules ul {
+  padding-left: 1.3rem;
+  margin: 0.5rem 0 1.2rem;
+}
+
+.game-rules ul li {
+  margin-bottom: 0.5rem;
+}
+
+
+
+header h1 {
+  font-size: 2.8rem;
+  letter-spacing: 0.1rem;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  user-select: none;
+  margin-bottom: 0.4rem;
+}
+
+/* HEADER MODIFIÉ */
+header {
+  color: white;
+  box-shadow: none; /* Supprimé pour permettre deux bandeaux distincts */
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: 0; /* Retiré le padding global */
+}
+
+/* Bandeau supérieur transparent */
+.title-banner {
+  background-color: #2b4ba0;
+  padding: 1.2rem 1.5rem 0.8rem;
+  text-align: center;
+}
+
+.title-banner h1 {
+  font-size: 2.8rem;
+  letter-spacing: 0.1rem;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  user-select: none;
+  margin: 0;
+  color: white; /* Pour contraste sur fond d'image */
+}
+
+/* NAVIGATION - Bandeau séparé */
+#main-nav {
+  background-color: #4A90E2;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.15);
+  padding: 0.9rem 0;
+}
+
+#main-nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+}
+
+#main-nav a {
+  text-decoration: none;
+  color: #D3E5FF;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 25px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#main-nav a:hover,
+#main-nav a.active {
+  background-color: #fff;
+  color: #4A90E2;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
+}
+
+/* MAIN CONTENT */
+main {
+  flex-grow: 1;
+  max-width: 700px;
+  margin: 2rem auto 4rem;
+  padding: 0 1rem;
+  background-color: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgb(0 0 0 / 0.1);
+}
+
+/* Sections */
+section {
+  padding: 2rem 1.5rem;
+  border-radius: 20px;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.section-active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.section-hidden {
+  display: none;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* Titles */
+h2 {
+  font-size: 2rem;
+  color: #4A90E2;
+  margin-bottom: 1.2rem;
+  text-align: center;
+  user-select: none;
+}
+
+/* Welcome box */
+#home-section > div {
+  background: #E8F0FE;
+  border-radius: 15px;
+  padding: 1.3rem;
+  font-style: italic;
+  color: #2B2B2B;
+  font-size: 1.1rem;
+  text-align: center;
+  box-shadow: inset 0 0 5px #4A90E2AA;
+}
+
+#home-section p {
+  color: #2B2B2B;  
+}
+
+/* Forms */
+form {
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+label {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+input[type="text"],
+input[type="password"] {
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: 2px solid #4A90E2;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+  outline: none;
+  border-color: #2C6EB2;
+  box-shadow: 0 0 6px #2C6EB2AA;
+}
+
+/* Buttons */
+button {
+  background-color: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 0.9rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 10px rgb(74 144 226 / 0.5);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+  user-select: none;
+}
+
+button:hover {
+  background-color: #2C6EB2;
+  box-shadow: 0 8px 14px rgb(44 110 178 / 0.7);
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 0.9rem;
+}
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+  .title-banner h1 {
+    font-size: 2rem;
+    padding: 0.5rem 0;
+  }
+
+  header h1 {
+    font-size: 2rem;
+  }
+
+  #main-nav {
+    padding: 0.6rem 0;
+  }
+
+  #main-nav ul {
+    gap: 1.2rem;
+  }
+
+
+  .wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+  }
+  h2 {
+    font-size: 1.6rem;
+  }
+
+  form {
+    max-width: 100%;
+  }
+}
+
+
+

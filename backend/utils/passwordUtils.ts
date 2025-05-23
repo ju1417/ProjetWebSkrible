@@ -1,4 +1,4 @@
-import { bcrypt } from "../deps.ts";
+import * as bcrypt from "https://deno.land/x/bcrypt@v0.4.1/mod.ts";
 
 // Fonction basique de hash
 export async function hashPassword(password: string): Promise<string> {
@@ -7,7 +7,7 @@ export async function hashPassword(password: string): Promise<string> {
 
 // Fonction basique de vérification
 export async function verifyPassword(
-  plainText: string, 
+  plainText: string,
   hash: string
 ): Promise<boolean> {
   return await bcrypt.compare(plainText, hash);

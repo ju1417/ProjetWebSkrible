@@ -1,0 +1,241 @@
+/* styleCommun.css - Éléments communs à toutes les pages */
+
+/* Base */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-image: url('/assets/backgroundSkribble.png');
+  background-repeat: repeat;
+  background-size: auto;
+  background-color: #2b4ba0;
+  font-family: sans-serif;
+  color: white;
+}
+
+/* HEADER */
+header {
+  color: white;
+  box-shadow: none;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+}
+.title-banner {
+  background-color: #2b4ba0;
+  padding: 1.2rem 1.5rem 0.8rem;
+  text-align: center;
+}
+
+.title-banner h1 {
+  font-size: 2.8rem;
+  letter-spacing: 0.1rem;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+  user-select: none;
+  margin: 0;
+  color: white;
+}
+
+/* NAVIGATION - Bandeau séparé */
+#main-nav {
+  background-color: #4A90E2;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.15);
+  padding: 0.9rem 0;
+}
+
+#main-nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+}
+
+#main-nav a, .nav-link {
+  text-decoration: none;
+  color: #D3E5FF;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 25px;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  cursor: pointer;
+}
+
+#main-nav a:hover,
+#main-nav a.active,
+.nav-link:hover {
+  background-color: #fff;
+  color: #4A90E2;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.1);
+}
+
+/* Containers communs */
+.container {
+  flex-grow: 1;
+  max-width: 1200px;
+  margin: 2rem auto 4rem;
+  padding: 0 1rem;
+}
+
+.card {
+  background-color: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgb(0 0 0 / 0.1);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Boutons communs */
+.btn, button {
+  background-color: #4A90E2;
+  color: white;
+  border: none;
+  border-radius: 15px;
+  padding: 0.9rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 10px rgb(74 144 226 / 0.5);
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+  user-select: none;
+}
+
+.btn:hover, button:hover {
+  background-color: #2C6EB2;
+  box-shadow: 0 8px 14px rgb(44 110 178 / 0.7);
+}
+
+.btn-sm {
+  font-size: 0.9rem;
+  padding: 0.5rem 0.8rem;
+}
+
+.btn-danger {
+  background-color: #e25353;
+}
+
+.btn-danger:hover {
+  background-color: #c43a3a;
+}
+
+.btn-success {
+  background-color: #4CAF50;
+}
+
+.btn-success:hover {
+  background-color: #3d8b40;
+}
+
+/* Titres communs */
+h2 {
+  font-size: 2rem;
+  color: #4A90E2;
+  margin-bottom: 1.2rem;
+  text-align: center;
+  user-select: none;
+}
+
+h3 {
+  font-size: 1.5rem;
+  color: #4A90E2;
+  margin-bottom: 1rem;
+}
+
+/* Textes et couleurs */
+.text-primary {
+  color: #4A90E2;
+}
+
+.text-danger {
+  color: #e25353;
+}
+
+.text-success {
+  color: #4CAF50;
+}
+
+.text-dark {
+  color: #2B2B2B;
+}
+
+.bg-light {
+  background-color: #EAF4FF;
+}
+
+.bg-white {
+  background-color: #ffffff;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.3);
+  color: white;
+  font-size: 0.9rem;
+}
+
+/* Animations */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Utilitaires */
+.text-center {
+  text-align: center;
+}
+
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 2rem; }
+
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mt-4 { margin-top: 2rem; }
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+  .title-banner h1 {
+    font-size: 2rem;
+    padding: 0.5rem 0;
+  }
+
+  #main-nav {
+    padding: 0.6rem 0;
+  }
+
+  #main-nav ul {
+    gap: 1.2rem;
+  }
+
+  h2 {
+    font-size: 1.6rem;
+  }
+
+  .container {
+    padding: 0 1rem;
+  }
+  
+  .card {
+    padding: 1rem;
+  }
+}
