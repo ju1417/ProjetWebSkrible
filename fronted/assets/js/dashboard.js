@@ -140,36 +140,44 @@ function setupEventListeners() {
 
 // Fonction de déconnexion 
 function logout() {
-  console.log('🚪 Déconnexion...');
-  
-  if (!confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-    return;
-  }
-  
-  // Récupérer les informations utilisateur
-  const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-  const username = currentUser.username;
-  
-  if (username) {
-    console.log('📤 Envoi beacon de déconnexion...');
+    console.log('🚪 Déconnexion...');
     
-    // Créer les données à envoyer
-    const logoutData = JSON.stringify({ username });
+    if (!confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
+        return;
+    }
     
-    // Utiliser sendBeacon pour envoyer la requête même si la page se redirige
-    const beaconSent = navigator.sendBeacon(
-      '/api/logout', 
-      new Blob([logoutData], { type: 'application/json' })
-    );
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    const username = currentUser.username;
     
-    console.log('📤 Beacon envoyé:', beaconSent);
-  }
-  
-  // Nettoyer et rediriger
-  console.log('🧹 Nettoyage local et redirection...');
-  sessionStorage.clear();
-  localStorage.removeItem('currentUser');
-  window.location.href = 'index.html';
+    console.log("👤 Déconnexion de:", username);
+    
+    if (username) {
+        // Appel API simple avec fetch (plus fiable que sendBeacon)
+        fetch(`${API_URL}/logout`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username: username })
+        })
+        .then(response => {
+            console.log("📥 Réponse logout:", response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log("✅ Logout réussi:", data);
+        })
+        .catch(error => {
+            console.error("❌ Erreur logout:", error);
+        })
+        .finally(() => {
+            // Nettoyage et redirection dans tous les cas
+            performLogoutCleanup();
+        });
+    } else {
+        // Pas de username, nettoyage direct
+        performLogoutCleanup();
+    }
 }
 
 // Lancer une nouvelle partie - AVEC LOGS DÉTAILLÉS
@@ -232,7 +240,7 @@ function joinExistingGame() {
     const storageKey = `gameSettings_${currentUser.username}`;
     
     const gameSettings = {
-        isGameCreator: false,          // ✅ PAS CRÉATEUR
+        isGameCreator: false,          
         totalRounds: null,
         timePerRound: null,
         roomCode: roomCode || null,
@@ -508,4 +516,21 @@ function showError(message) {
     document.body.appendChild(errorDiv);
     
     setTimeout(() => errorDiv.remove(), 5000);
+}
+
+// Fonction séparée pour le nettoyage
+function performLogoutCleanup() {
+    console.log('🧹 Nettoyage et redirection...');
+    
+    // Fermer WebSocket si existe
+    if (typeof adminSocket !== 'undefined' && adminSocket) {
+        adminSocket.close();
+    }
+    
+    // Nettoyage storage
+    sessionStorage.clear();
+    localStorage.removeItem('currentUser');
+    
+    // Redirection
+    window.location.href = 'index.html';
 }

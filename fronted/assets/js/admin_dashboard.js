@@ -180,7 +180,9 @@ async function loadAdminData() {
         await Promise.all([
             loadAdminStats(),
             refreshActiveGames(),
-            refreshActivePlayers()
+            refreshActivePlayers(),
+            loadTodayGames(),
+            refreshActivityLog()
         ]);
     } catch (error) {
         console.error('❌ Erreur chargement données admin:', error);
@@ -702,23 +704,6 @@ function formatDuration(minutes) {
     }
 }
 
-// Ajouter cette fonction au chargement initial des données
-// Modifier la fonction loadAdminData pour inclure les parties du jour
-async function loadAdminData() {
-    console.log('📊 Chargement des données admin...');
-    
-    try {
-        await Promise.all([
-            loadAdminStats(),
-            refreshActiveGames(),
-            refreshActivePlayers(),
-            loadTodayGames()  // ✅ Ajouté ici
-        ]);
-    } catch (error) {
-        console.error('❌ Erreur chargement données admin:', error);
-        showError('Erreur lors du chargement des données admin');
-    }
-}
 
 // Afficher les détails d'une partie active
 function displayActiveGameDetails(game, modal) {
@@ -1036,111 +1021,118 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Fonction pour afficher le journal d'activités
 function refreshActivityLog() {
-  console.log("Actualisation du journal d'activités...");
-  
-  const activityContainer = document.getElementById('activity-log-container');
-  if (!activityContainer) {
-    console.error("Container d'activités non trouvé");
-    return;
-  }
-  
-  activityContainer.innerHTML = '<div class="loading">Chargement des activités...</div>';
-  
-  fetch('/api/admin/activity-log')
-    .then(response => {
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-      return response.json();
-    })
-    .then(activities => {
-      console.log("Activités reçues:", activities);
-      
-      if (!Array.isArray(activities)) {
-        console.warn("Les données reçues ne sont pas un tableau:", activities);
-        activityContainer.innerHTML = '<div class="error">Format de données incorrect</div>';
+    console.log("📋 Actualisation du journal d'activités...");
+    
+    const activityContainer = document.getElementById('activity-log-container');
+    if (!activityContainer) {
+        console.error("❌ Container d'activités non trouvé");
         return;
-      }
-      
-      displayActivities(activityContainer, activities);
+    }
+    
+    activityContainer.innerHTML = '<div class="loading">Chargement des activités...</div>';
+    
+    fetch(`${API_URL}/admin/activity-log`, {
+        headers: {
+            'X-Admin-Username': currentAdmin.username
+        }
+    })
+    .then(response => {
+        console.log("📡 Réponse API activités:", response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("📊 Données activités reçues:", data);
+        console.log("📊 Type des données:", typeof data);
+        console.log("📊 Est un tableau:", Array.isArray(data));
+        
+        // Ton backend retourne directement le tableau activityLog
+        if (Array.isArray(data)) {
+            displayActivities(activityContainer, data);
+        } else if (data.success && Array.isArray(data.activities)) {
+            // Au cas où tu changes le format plus tard
+            displayActivities(activityContainer, data.activities);
+        } else {
+            console.error("❌ Format de données inattendu:", data);
+            throw new Error('Format de données incorrect');
+        }
     })
     .catch(error => {
-      console.error('Erreur:', error);
-      activityContainer.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
-      
-      // Afficher des données fictives en cas d'erreur
-      setTimeout(() => {
-        showMockActivities(activityContainer);
-      }, 2000);
+        console.error('❌ Erreur chargement activités:', error);
+        activityContainer.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
+        
+        // Afficher des données de test après 2 secondes
+        setTimeout(() => {
+            showMockActivities(activityContainer);
+        }, 2000);
     });
 }
-
-
 // Ajouter une nouvelle activité au log (pour les événements en temps réel si vous utilisez WebSockets)
 function addActivityToLog(activity) {
-    // Créer un nouvel élément d'activité
+    console.log("➕ Ajout activité en temps réel:", activity);
+    
+    const activityContainer = document.getElementById('activity-log-container');
+    if (!activityContainer) return;
+    
+    // Créer l'élément
     const logItem = document.createElement('div');
-    logItem.className = `log-item ${activity.type}-action`;
+    logItem.className = `log-item ${activity.type}-action new-activity`;
     
-    // Formater l'heure
-    const time = formatTime(new Date(activity.timestamp));
+    const timeFormatted = formatTime(new Date(activity.timestamp));
     
-    // Créer le contenu HTML
     logItem.innerHTML = `
-        <span class="log-time">${time}</span>
+        <span class="log-time">${timeFormatted}</span>
         <span class="log-event">${activity.message}</span>
     `;
     
-    // Ajouter au début du conteneur
-    const activityContainer = document.getElementById('activity-log-container');
-    activityContainer.insertBefore(logItem, activityContainer.firstChild);
-    
-    // Animation pour la nouvelle activité
-    logItem.style.backgroundColor = '#E6F2FF';
-    setTimeout(() => {
-        logItem.style.backgroundColor = '';
-    }, 2000);
-    
-    // Limiter le nombre d'entrées
-    const items = activityContainer.querySelectorAll('.log-item');
-    if (items.length > MAX_LOG_ENTRIES) {
-        activityContainer.removeChild(items[items.length - 1]);
+    // Ajouter au début de la liste existante
+    const activityLogDiv = activityContainer.querySelector('.activity-log');
+    if (activityLogDiv) {
+        activityLogDiv.insertBefore(logItem, activityLogDiv.firstChild);
+        
+        // Animation pour la nouvelle activité
+        logItem.style.backgroundColor = '#E6F2FF';
+        setTimeout(() => {
+            logItem.style.backgroundColor = '';
+            logItem.classList.remove('new-activity');
+        }, 2000);
+        
+        // Limiter le nombre d'entrées
+        const items = activityLogDiv.querySelectorAll('.log-item');
+        if (items.length > MAX_LOG_ENTRIES) {
+            activityLogDiv.removeChild(items[items.length - 1]);
+        }
     }
 }
-// Fonction pour afficher des données de test en attendant l'intégration serveur
-function refreshActivityLog() {
-  const activityContainer = document.getElementById('activity-log-container');
-  if (!activityContainer) return;
-  
-  activityContainer.innerHTML = '<div class="loading">Chargement des activités...</div>';
-  
-  fetch(`${API_URL}/admin/activity-log`)
-    .then(response => {
-      // Vérifier d'abord ce que contient la réponse brute
-      return response.text().then(text => {
-        console.log("Réponse brute de l'API:", text);
+
+function displayActivities(container, activities) {
+    console.log("🎭 Affichage des activités:", activities.length);
+    
+    if (!Array.isArray(activities) || activities.length === 0) {
+        container.innerHTML = '<div class="no-data">Aucune activité récente</div>';
+        return;
+    }
+    
+    const activitiesHtml = activities.map(activity => {
+        const timeFormatted = formatTime(new Date(activity.timestamp));
+        const typeClass = activity.type || 'default';
         
-        // Si le texte est vide ou non valide, afficher un message
-        if (!text || text.trim() === '') {
-          throw new Error('Réponse vide du serveur');
-        }
-        
-        try {
-          // Essayer de parser manuellement
-          return JSON.parse(text);
-        } catch (e) {
-          console.error("Erreur de parsing JSON:", e);
-          throw new Error(`Réponse non-JSON: ${text.substring(0, 100)}...`);
-        }
-      });
-    })
-    .then(activities => {
-      displayActivities(activityContainer, activities);
-    })
-    .catch(error => {
-      console.error('Erreur:', error);
-      activityContainer.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
-    });
+        return `
+            <div class="log-item ${typeClass}-action">
+                <span class="log-time">${timeFormatted}</span>
+                <span class="log-event">${activity.message}</span>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = `
+        <div class="activity-log">
+            ${activitiesHtml}
+        </div>
+    `;
 }
 
 document.head.appendChild(style);

@@ -70,6 +70,7 @@ const gameRoom: GameRoom = {
 const connectedClients = new Map<WebSocket, Player>();
 
 var activityLog = [];
+const MAX_LOG_ENTRIES = 50;
 
 // ==================== CONFIGURATION EXPRESS ====================
 
@@ -159,7 +160,7 @@ router.post("/api/login", async (ctx) => {
     // Chercher l'utilisateur
     const userResult = await db.queryObject(
       "SELECT id, username, password, isadmin FROM users WHERE username = $1",
-      [username]
+      [username]    
     );
     
     if (userResult.rows.length === 0) {
@@ -199,25 +200,36 @@ router.post("/api/login", async (ctx) => {
   }
 });
 
-// Fonction pour se déconnecter
+// Route pour se déconnecter
 router.post("/api/logout", async (ctx) => {
-  try {
-    const body = await ctx.request.body.value;
-    const { username } = body;
+    console.log("🚪 Requête de déconnexion reçue");
     
-    console.log(`📤 Déconnexion de l'utilisateur: ${username}`);
-    
-    // Journaliser la déconnexion
-    if (username) {
-      logDisconnection(username);
+    try {
+        // Lire le body de la requête
+        const body = await ctx.request.body.json();
+        console.log("📥 Body reçu:", body);
+        
+        const { username } = body;
+        console.log("👤 Username à déconnecter:", username);
+        
+        if (username) {
+            // Enregistrer la déconnexion
+            logDisconnection(username);
+            console.log("✅ Déconnexion enregistrée pour:", username);
+        }
+        
+        // Réponse de succès
+        ctx.response.status = 200;
+        ctx.response.body = { 
+            success: true, 
+            message: `Déconnexion de ${username} enregistrée` 
+        };
+        
+    } catch (error) {
+        console.error("❌ Erreur logout:", error);
+        ctx.response.status = 500;
+        ctx.response.body = { error: "Erreur serveur" };
     }
-    
-    ctx.response.body = { success: true };
-  } catch (error) {
-    console.error("Erreur déconnexion:", error);
-    ctx.response.status = 500;
-    ctx.response.body = { error: "Erreur serveur" };
-  }
 });
 
 // ===================== JOURNAL D'ACTIVITEES ====================
@@ -243,20 +255,35 @@ function logConnection(username) {
 
 // Fonction pour journaliser les déconnexions
 function logDisconnection(username) {
-  const activity = {
-    message: `${username} s'est déconnecté`,
-    type: "disconnection",
-    timestamp: new Date()
-  };
-  
-  activityLog.unshift(activity);
-  
-  if (activityLog.length > 50) {
-    activityLog.pop();
-  }
-  
-  console.log(`[ACTIVITY] Disconnection: ${username} s'est déconnecté`);
+    console.log("🔥 === DEBUT logDisconnection ===");
+    console.log("👤 Username reçu:", username);
+    console.log("📊 Taille du log avant:", activityLog.length);
+    
+    const activity = {
+        message: `${username} s'est déconnecté`,
+        type: "disconnection",
+        timestamp: new Date().toISOString()
+    };
+    
+    console.log("📝 Activité créée:", activity);
+    
+    // Ajouter au début du tableau
+    activityLog.unshift(activity);
+    
+    console.log("📊 Taille du log après unshift:", activityLog.length);
+    console.log("📊 Première entrée du log:", activityLog[0]);
+    
+    // Garder seulement les 50 dernières entrées
+    if (activityLog.length > 50) {
+        activityLog.pop();
+        console.log("📊 Log tronqué à 50 entrées");
+    }
+    
+    console.log(`[ACTIVITY] Disconnection: ${username} s'est déconnecté`);
+    console.log("🔥 === FIN logDisconnection ===");
 }
+
+
 // ==================== ROUTES DU JEU ====================
 
 // Mot aléatoire
@@ -579,10 +606,6 @@ router.get("/api/admin/activity-log", (ctx) => {
   // Vérifier la présence de déconnexions
   const disconnections = activityLog.filter(a => a.type === 'disconnection');
   console.log('🔴 Nombre de déconnexions:', disconnections.length);
-  if (disconnections.length > 0) {
-    console.log('🔴 Exemple de déconnexion:', disconnections[0]);
-  }
-  
   ctx.response.headers.set("Content-Type", "application/json");
   ctx.response.body = activityLog;
 });
