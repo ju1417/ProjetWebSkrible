@@ -1,179 +1,4 @@
-/* dashboard.css - Styles spécifiques pour le dashboard */
-
-/* Structure globale pour garantir le footer en bas */
-html, body {
-    height: 100%;
-    min-height: 100%;
-}
-
-body {
-    display: flex;
-    flex-direction: column;
-}
-
-.wrapper {
-    flex: 1 0 auto; /* Cette propriété fait que le wrapper prend tout l'espace disponible */
-}
-
-/* Le footer reste en bas */
-footer {
-    flex-shrink: 0; /* Empêche le footer de rétrécir */
-}
-
-/* Layout principal */
-.dashboard-container {
-    max-width: 1200px;
-    margin: 2rem auto 4rem;
-    padding: 0 1.5rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-gap: 2rem;
-}
-
-/* Ajustements pour le header et la nav */
-#main-nav ul {
-    list-style: none;
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin: 0;
-    padding: 0;
-}
-
-#main-nav ul li {
-    display: flex;
-    align-items: center;
-}
-
-#username-display {
-    color: #D3E5FF;
-    font-size: 1.1rem;
-}
-
-#user-name {
-    color: #ffd700;
-    font-weight: 700;
-}
-
-/* Bouton de déconnexion stylisé */
-#logout-btn {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: white;
-    border: 2px solid rgba(255, 255, 255, 0.6);
-    padding: 0.5rem 1rem;
-    border-radius: 25px;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-
-#logout-btn:hover {
-    background-color: white;
-    color: #4A90E2;
-}
-
-/* Sections principales avec un style cohérent */
-.game-section,
-.stats-section,
-.history-section,
-.join-section {
-    background: white;
-    padding: 2rem;
-    border-radius: 20px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    transition: all 0.3s ease;
-}
-
-.game-section:hover,
-.stats-section:hover,
-.history-section:hover,
-.join-section:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.15);
-}
-
-/* Section Nouvelle Partie - style spécial avec dégradé */
-.game-section {
-    grid-column: 1 / -1;
-    background: linear-gradient(135deg, #4A90E2 0%, #2b4ba0 100%);
-    color: white;
-    text-align: center;
-}
-
-.game-section h2 {
-    color: white;
-    margin-bottom: 1.5rem;
-    font-size: 1.8rem;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-}
-
-/* Options de jeu */
-.game-options {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 2rem;
-    flex-wrap: wrap;
-    margin-top: 1rem;
-}
-
-.option-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-    align-items: center;
-}
-
-.option-group label {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #f8f9fa;
-}
-
-.option-group select {
-    padding: 0.8rem 1.5rem;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    border-radius: 15px;
-    background: rgba(255, 255, 255, 0.9);
-    color: #333;
-    font-size: 1rem;
-    min-width: 180px;
-    transition: all 0.3s ease;
-}
-
-.option-group select:focus {
-    outline: none;
-    border-color: #ffd700;
-    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
-}
-
-/* Bouton principal */
-#start-game-btn {
-    background-color: #ffd700;
-    color: #4A4A4A;
-    border: none;
-    padding: 1rem 2rem;
-    border-radius: 30px;
-    cursor: pointer;
-    font-size: 1.2rem;
-    font-weight: 700;
-    margin-top: 1rem;
-    transition: all 0.3s ease;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-#start-game-btn:hover {
-    background-color: #f8c300;
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* Section Rejoindre */
-.join-section h2 {
-    color: #4A90E2;
-    margin-bottom: 1.5rem;
-}
+/* dashboard.css - Styles spécifiques au dashboard utilisateur */
 
 .join-options {
     display: flex;
@@ -215,32 +40,7 @@ footer {
     transform: translateY(-2px);
 }
 
-/* Statistiques avec un style plus moderne */
-.stats-section h2, 
-.history-section h2 {
-    color: #4A90E2;
-    margin-bottom: 1.5rem;
-    text-align: center;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-}
-
-.stat-card {
-    background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
-    padding: 1.5rem;
-    border-radius: 15px;
-    text-align: center;
-    border-left: 5px solid #4A90E2;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-}
-
+/* Effet spécial pour les cartes de stats */
 .stat-card::before {
     content: '';
     position: absolute;
@@ -257,73 +57,7 @@ footer {
     transform: scaleX(1);
 }
 
-.stat-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-}
-
-.stat-card h3 {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 600;
-}
-
-.stat-value {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #4A90E2;
-    display: block;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
-}
-
-/* Historique des parties */
-.games-history {
-    max-height: 350px;
-    overflow-y: auto;
-    margin-top: 1.5rem;
-    padding-right: 10px;
-    scroll-behavior: smooth;
-}
-
-.games-history::-webkit-scrollbar {
-    width: 5px;
-}
-
-.games-history::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-}
-
-.games-history::-webkit-scrollbar-thumb {
-    background: #4A90E2;
-    border-radius: 10px;
-}
-
-.games-history::-webkit-scrollbar-thumb:hover {
-    background: #2C6EB2;
-}
-
-.game-history-item {
-    display: grid;
-    grid-template-columns: 1fr auto auto 1fr;
-    align-items: center;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    background: #f8f9fa;
-    border-radius: 15px;
-    transition: all 0.3s ease;
-    border-left: 3px solid transparent;
-}
-
-.game-history-item:hover {
-    background-color: #e9ecef;
-    border-left-color: #4A90E2;
-    transform: translateX(5px);
-}
-
+/* Détails des parties dans l'historique */
 .game-date {
     font-weight: 600;
     color: #333;
@@ -334,42 +68,6 @@ footer {
     font-weight: bold;
     color: #4A90E2;
     font-size: 1.1rem;
-}
-
-.game-position {
-    font-size: 1.2rem;
-    font-weight: bold;
-    padding: 0.5rem 0.8rem;
-    border-radius: 50%;
-    min-width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.first-place {
-    background-color: #ffd700;
-    color: #b8860b;
-    box-shadow: 0 3px 10px rgba(255, 215, 0, 0.3);
-}
-
-.second-place {
-    background-color: #c0c0c0;
-    color: #696969;
-    box-shadow: 0 3px 10px rgba(192, 192, 192, 0.3);
-}
-
-.third-place {
-    background-color: #cd7f32;
-    color: white;
-    box-shadow: 0 3px 10px rgba(205, 127, 50, 0.3);
-}
-
-.other-place {
-    background-color: #f8f9fa;
-    color: #666;
-    border: 2px solid #dee2e6;
 }
 
 .game-details {
@@ -401,44 +99,7 @@ footer {
     color: white;
 }
 
-/* Messages d'état */
-.loading {
-    text-align: center;
-    color: #6c757d;
-    font-style: italic;
-    padding: 2.5rem;
-    font-size: 1rem;
-}
-
-.error {
-    text-align: center;
-    color: #dc3545;
-    padding: 1.5rem;
-    background-color: #f8d7da;
-    border-radius: 15px;
-    border: 1px solid #f5c6cb;
-}
-
-/* Animations */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.game-section,
-.stats-section,
-.history-section,
-.join-section {
-    animation: fadeIn 0.6s ease-out;
-}
-
-/* Délais d'animation pour l'effet cascade */
+/* Délais d'animation pour l'effet cascade - dashboard uniquement */
 .game-section {
     animation-delay: 0.1s;
 }
@@ -455,28 +116,8 @@ footer {
     animation-delay: 0.4s;
 }
 
-/* Responsive Design */
+/* Responsive spécifique dashboard */
 @media (max-width: 868px) {
-    .dashboard-container {
-        grid-template-columns: 1fr;
-        padding: 1rem;
-        gap: 1.5rem;
-    }
-    
-    .game-options {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
-    .option-group {
-        width: 100%;
-    }
-    
-    .option-group select {
-        width: 100%;
-        min-width: auto;
-    }
-    
     .join-options {
         flex-direction: column;
     }
@@ -486,32 +127,7 @@ footer {
         width: 100%;
     }
     
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .game-history-item {
-        grid-template-columns: 1fr;
-        gap: 0.8rem;
-        text-align: center;
-    }
-    
     .game-details {
         text-align: center;
-    }
-}
-
-@media (max-width: 480px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .stat-value {
-        font-size: 2rem;
-    }
-    
-    #main-nav ul {
-        flex-direction: column;
-        gap: 0.8rem;
     }
 }

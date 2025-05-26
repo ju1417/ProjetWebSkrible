@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - Skribble</title>
     <link rel="stylesheet" href="assets/css/styleCommun.css">
-    <link rel="stylesheet" href="assets/css/dashboard.css">
-
     <link rel="stylesheet" href="assets/css/admin-dashboard.css">
 </head>
 
@@ -45,6 +43,16 @@
             </div>
         </div>
 
+                <!-- Quick Actions -->
+        <div class="admin-section">
+            <h3> Actions rapides</h3>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="admin-btn" onclick="kickAllPlayers()">Déconnecter tous les joueurs</button>
+                <button class="admin-btn" onclick="endAllGames()">Terminer toutes les parties</button>
+            </div>
+        </div>
+
+        
         <!-- Active Games Section -->
         <div class="admin-section">
             <h3> Parties en cours</h3>
@@ -60,15 +68,6 @@
             <button class="refresh-btn" onclick="refreshActivePlayers()">Actualiser</button>
             <div id="active-players-container" class="active-players-list">
                 <div class="loading">Chargement des joueurs...</div>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="admin-section">
-            <h3> Actions rapides</h3>
-            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <button class="admin-btn" onclick="kickAllPlayers()">Déconnecter tous les joueurs</button>
-                <button class="admin-btn" onclick="endAllGames()">Terminer toutes les parties</button>
             </div>
         </div>
 

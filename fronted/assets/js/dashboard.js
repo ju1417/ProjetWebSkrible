@@ -233,16 +233,24 @@ function joinExistingGame() {
     console.log(`👤 Joueur: ${currentUser.username}`);
     console.log('========================================');
     
-    const roomCode = document.getElementById('room-code').value.trim();
+    // ✅ PAS de room-code, on rejoint directement
+    let roomCode = null;
+    
+    // Optionnel : demander un code via prompt
+    const userInput = prompt('Entrez le code de la partie à rejoindre (ou laissez vide pour rejoindre n\'importe quelle partie):');
+    if (userInput !== null && userInput.trim() !== '') {
+        roomCode = userInput.trim();
+    }
+    
     console.log(`🏠 Code room: "${roomCode}"`);
     
     // ✅ Clé unique par utilisateur
     const storageKey = `gameSettings_${currentUser.username}`;
     
     const gameSettings = {
-        isGameCreator: false,          
-        totalRounds: null,
-        timePerRound: null,
+        isGameCreator: false,          // ✅ PAS CRÉATEUR
+        totalRounds: null,             // Sera défini par le créateur
+        timePerRound: null,            // Sera défini par le créateur
         roomCode: roomCode || null,
         username: currentUser.username,
         timestamp: Date.now()
@@ -254,12 +262,12 @@ function joinExistingGame() {
     // Sauvegarder avec une clé spécifique à l'utilisateur
     sessionStorage.setItem(storageKey, JSON.stringify(gameSettings));
     
-    // ✅ Vérification immédiate avec logs détaillés
+    // ✅ Vérification immédiate
     const verification = JSON.parse(sessionStorage.getItem(storageKey));
     console.log('🔍 Vérification immédiate:', verification);
-    console.log(`   - isGameCreator: ${verification.isGameCreator} (type: ${typeof verification.isGameCreator})`);
+    console.log(`   - isGameCreator: ${verification.isGameCreator}`);
     console.log(`   - username: ${verification.username}`);
-    console.log(`   - timestamp: ${new Date(verification.timestamp)}`);
+    console.log(`   - roomCode: ${verification.roomCode}`);
     
     console.log('🔄 Redirection vers game.html...');
     console.log('========================================');
@@ -268,41 +276,6 @@ function joinExistingGame() {
     window.location.href = 'game.html';
 }
 
-
-// Rejoindre une partie existante
-function joinExistingGame() {
-    console.log('========================================');
-    console.log('👥 REJOINDRE PARTIE EXISTANTE');
-    console.log(`👤 Joueur: ${currentUser.username}`);
-    console.log('========================================');
-    
-    const roomCode = document.getElementById('room-code').value.trim();
-    
-    // ✅ SOLUTION : Clé unique par utilisateur
-    const storageKey = `gameSettings_${currentUser.username}`;
-    
-    const gameSettings = {
-        isGameCreator: false,
-        totalRounds: null,
-        timePerRound: null,
-        roomCode: roomCode || null,
-        username: currentUser.username,
-        timestamp: Date.now()
-    };
-    
-    console.log('💾 Clé de stockage:', storageKey);
-    console.log('💾 Paramètres à sauvegarder:', gameSettings);
-    
-    // ✅ Sauvegarder avec une clé spécifique à l'utilisateur
-    sessionStorage.setItem(storageKey, JSON.stringify(gameSettings));
-    
-    // Vérification
-    const verification = JSON.parse(sessionStorage.getItem(storageKey));
-    console.log('🔍 Vérification:', verification);
-    
-    console.log('🔄 Redirection vers game.html...');
-    window.location.href = 'game.html';
-}
 
 // Charger les données utilisateur
 async function loadUserData() {

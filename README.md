@@ -2,256 +2,211 @@
 
 Un jeu de dessin en ligne inspiré de Skribbl.io où les joueurs doivent deviner ce que dessinent les autres participants en temps réel.
 
-![Skribble Game](https://img.shields.io/badge/Status-En%20Développement-yellow)
-![Version](https://img.shields.io/badge/Version-1.0.0-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-
-## 🎯 Description
+##  Description
 
 Skribble est un jeu multijoueur en temps réel où :
 - Un joueur dessine un mot choisi automatiquement
-- Les autres joueurs tentent de deviner le mot dans un temps limité
+- Les autres joueurs tentent de deviner le mot dans un temps limité  
 - Chaque bonne réponse rapporte 100 points
 - Le gagnant est celui qui accumule le plus de points à la fin de toutes les manches
 
-## 🚀 Fonctionnalités
+Le jeu propose une interface de dessin complète avec chat intégré, un système d'administration, et un tableau de bord personnel pour suivre ses statistiques.
 
-### 🎮 Côté Jeu
-- **Dessin en temps réel** avec outils de dessin (crayon, gomme, formes géométriques)
-- **Chat intégré** pour les interactions entre joueurs
+##  Fonctionnalités
+
+###  Système de Jeu
+- **Dessin temps réel** : Canvas HTML5 avec outils variés (crayon, gomme, formes)
+- **Chat intégré** : Communication entre joueurs pendant les parties
 - **Système de points** : 100 points par bonne réponse
-- **Parties personnalisables** : 2, 3, 5 ou 10 manches
-- **Temps de jeu modulable** : 60, 90 ou 120 secondes par manche
-- **Interface responsive** pour tous types d'écrans
+- **Parties configurables** : 2, 3, 5 ou 10 manches au choix
+- **Temps modulable** : 60, 90 ou 120 secondes par manche
+- **Outils de dessin** : Annulation, effacement, palette de couleurs
 
-### 👤 Système Utilisateur
-- **Inscription/Connexion** sécurisée avec mots de passe hashés
-- **Tableau de bord personnel** avec statistiques
-- **Historique des parties** jouées
-- **Système d'administration** pour la gestion de la plateforme
+###  Gestion Utilisateur
+- **Authentification sécurisée** : Inscription/connexion avec hashage bcrypt
+- **Tableau de bord personnel** : Statistiques et historique des parties
+- **Profils utilisateur** : Suivi des performances individuelles
+- **Historique complet** : Consultation des parties passées
 
-### 🛡️ Interface Administrateur
-- **Tableau de bord admin** avec statistiques en temps réel
-- **Gestion des parties actives** (visualisation, terminaison forcée)
-- **Gestion des joueurs connectés** (déconnexion forcée)
-- **Journal d'activités** en temps réel (connexions, déconnexions, parties)
-- **Actions rapides** (kick all, end all games)
+###  Interface Administrateur
+- **Dashboard admin temps réel** : Surveillance globale de la plateforme
+- **Gestion des parties** : Visualisation et terminaison forcée
+- **Gestion des joueurs** : Déconnexion et modération
+- **Journal d'activités** : Logs de toutes les actions importantes
+- **Actions groupées** : Kick all, end all games
 
-## 🛠️ Stack Technique
+##  Limitations Actuelles
 
-### Backend
-- **Runtime** : Deno
-- **Framework** : Oak (équivalent Express pour Deno)
-- **Base de données** : PostgreSQL
-- **WebSockets** : Gestion temps réel des parties et de l'administration
-- **Sécurité** : Bcrypt pour le hashage des mots de passe
+- **Maximum 2 joueurs** par partie (pas de support multijoueur étendu)
+- **Dictionnaire limité** : Environ 50 mots disponibles
+- **Pas de catégories** : Tous types de mots mélangés
+- **Interface desktop** : Non optimisé pour mobile/tablette
+- **Synchronisation imparfaite** : L'annulation ne se synchronise pas toujours
+- **Gestion des déconnexions** : Parties bloquées en cas de déconnexion brutale
 
-### Frontend
-- **HTML5 Canvas** pour le système de dessin
-- **JavaScript ES6+** (vanilla, pas de framework)
-- **CSS3** avec design responsive
-- **WebSockets** pour les interactions temps réel
+##  Améliorations Souhaitées
 
-### Architecture
+###  Multijoueur Étendu
+- **Parties 3-8 joueurs** avec salles d'attente
+- **Modes équipe** : 2v2, 3v3 avec scores collectifs
+- **Système de spectateurs** pour regarder les parties
+- **Salons privés** avec codes d'accès
+
+###  Nouveaux Modes de Jeu
+- **Mode Rapide** : 30 secondes par dessin
+- **Mode Thématique** : Parties sur des sujets spécifiques
+- **Mode Mystère** : Le dessinateur ne connaît pas le mot
+- **Mode Relais** : Dessins collaboratifs en chaîne
+
+###  Outils Avancés
+- **Palettes étendues** avec couleurs personnalisées
+- **Pinceaux texturés** : aquarelle, crayon, marqueur
+- **Système de calques** pour dessins complexes
+- **Outils géométriques** : ellipses, polygones, courbes
+
+###  Optimisation Mobile
+- **Interface tactile** pour smartphones/tablettes
+- **Contrôles gestuels** : zoom, navigation tactile
+- **Mode portrait/paysage** adaptatif
+
+##  Difficultés Rencontrées
+
+###  Défis Techniques
+- **Synchronisation canvas** : Maintenir la cohérence entre tous les clients
+- **WebSockets complexes** : Gestion des connexions multiples et déconnexions
+- **Performance temps réel** : Optimiser le rendu pour les dessins complexes
+- **Architecture scalable** : Concevoir pour plus de joueurs simultanés
+
+###  Défis de Déploiement
+- **Configuration serveur** : Gestion des certificats HTTPS et WebSockets
+- **Base de données** : Setup PostgreSQL et migrations
+- **Variables d'environnement** : Configuration multi-environnements
+- **Monitoring** : Surveillance des performances en production
+
+##  Fonctionnalités Sociales
+
+- **Système d'amis** : Ajouter et défier ses contacts
+- **Classements globaux** : Leaderboards mensuels et annuels  
+- **Profils personnalisés** : Avatars et statistiques détaillées
+- **Galerie communautaire** : Partage des meilleurs dessins
+- **Système de badges** : Récompenses pour accomplissements
+- **Replay system** : Revoir les parties passées
+- **Chat vocal** : Communication audio entre joueurs
+- **Modération automatique** : Détection de contenu inapproprié
+
+## 🏗️ Architecture
+
 ```
-backend/
-├── config/
-│   └── server.ts          # Serveur principal Deno/Oak
-└── ...
-
-frontend/
-├── index.html             # Page d'accueil
-├── dashboard.html         # Tableau de bord utilisateur
-├── admin_dashboard.html   # Interface administrateur
-├── game.html             # Interface de jeu
-└── assets/
-    ├── css/
-    │   ├── index.css
-    │   ├── dashboard.css
-    │   ├── admin-dashboard.css
-    │   └── styleCommun.css
-    └── js/
-        ├── main.js
-        ├── dashboard.js
-        ├── admin_dashboard.js
-        └── game.js
+Projet Skribble/
+├── backend/
+│   ├── config/
+│   │   ├── server.ts           # Serveur principal API + WebSocket
+│   │   └── database.ts         # Configuration PostgreSQL
+│   └── ...
+├── frontend/
+│   ├── server.ts               # Serveur statique HTTPS
+│   ├── index.html              # Page de connexion
+│   ├── dashboard.html          # Tableau de bord utilisateur
+│   ├── game.html              # Interface de jeu
+│   ├── admin_dashboard.html    # Interface administrateur
+│   └── assets/
+│       ├── css/               # Styles CSS
+│       └── js/                # Scripts JavaScript
+└── .vscode/
+    └── tasks.json             # Automatisation VS Code
 ```
 
-## 📋 Prérequis
+**Stack Technique :**
+- **Backend** : Deno + Oak + PostgreSQL + WebSockets
+- **Frontend** : HTML5 Canvas + JavaScript Vanilla + CSS3
+- **Temps réel** : WebSockets pour synchronisation
+- **Sécurité** : HTTPS + Bcrypt + CORS
+
+##  Prérequis
 
 - **Deno** (version 1.40+)
 - **PostgreSQL** (version 12+)
-- **Navigateur moderne** supportant HTML5 Canvas et WebSockets
+- **Navigateur moderne** (Chrome, Firefox, Safari, Edge)
+- **VS Code** (recommandé pour l'automatisation)
 
-## 🔧 Installation
+##  Base de Données
 
-### 1. Cloner le projet
-```bash
-git clone https://github.com/votre-username/skribble.git
-cd skribble
-```
+Le projet utilise **PostgreSQL** avec 5 tables principales :
 
-### 2. Configuration de la base de données
-```sql
--- Créer la base de données PostgreSQL
-CREATE DATABASE skribble;
+1. **`users`** - Gestion des comptes utilisateurs et administrateurs
+2. **`games`** - Informations sur les parties (créateur, rounds, statut)
+3. **`game_players`** - Association joueurs/parties avec scores
+4. **`game_history`** - Historique détaillé des parties terminées
+5. **`activity_logs`** - Journal d'activités pour l'administration
 
--- Se connecter à la base et créer les tables
-\c skribble
+## ⚡ Automatisation avec tasks.json
 
--- Table des utilisateurs
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    isadmin BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+Le projet inclut une configuration VS Code pour automatiser le lancement :
 
--- Table des parties
-CREATE TABLE games (
-    id SERIAL PRIMARY KEY,
-    creator_id INTEGER REFERENCES users(id),
-    total_rounds INTEGER DEFAULT 3,
-    current_round INTEGER DEFAULT 0,
-    status VARCHAR(20) DEFAULT 'waiting',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    finished_at TIMESTAMP
-);
+- **Ouvrir VS Code** → `Ctrl+Shift+P` → "Tasks: Run Task"
+- **3 tâches disponibles** :
+  - `Start Backend` : Lance le serveur API
+  - `Start Frontend` : Lance le serveur web
+  - `Start Both` : Lance les deux simultanément
+- **Rechargement automatique** avec le flag `--watch`
+- **Terminaux séparés** pour backend et frontend
 
--- Autres tables selon vos besoins...
-```
+##  Comment Jouer
 
-### 3. Configuration des variables d'environnement
-```bash
-# Créer un fichier .env dans le dossier backend/config/
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=skribble
-DB_USER=votre_user
-DB_PASSWORD=votre_password
-PORT=3000
-WS_PORT=3001
-```
+### Première Utilisation
+1. **Accéder** à `https://localhost:8443`
+2. **Créer un compte** ou se connecter
+3. **Tableau de bord** : Choisir "Lancer une nouvelle partie" ou "Rejoindre"
+4. **Configurer** : Nombre de rounds (2-10) et temps par round (60-120s)
+5. **Attendre** qu'un autre joueur rejoigne la partie
 
-### 4. Lancer le serveur backend
-```bash
-cd backend/config
-deno run --allow-read --allow-net --allow-env --allow-write --watch server.ts
-```
+### Pendant le Jeu
+- **Dessinateur** : Dessiner le mot affiché dans le temps imparti
+- **Devineur** : Taper les réponses dans le chat
+- **Points** : 100 points par bonne réponse
+- **Alternance** : Les rôles changent à chaque round
 
-### 5. Servir le frontend
-Vous pouvez utiliser n'importe quel serveur web local pour servir les fichiers frontend :
+### Outils de Dessin
+- **Crayon** : Dessin libre
+- **Gomme** : Effacer des zones
+- **Formes** : Rectangle, cercle, ligne
+- **Couleurs** : Palette de couleurs
+- **Actions** : Annuler, Effacer tout (dessinateur uniquement)
 
-```bash
-# Avec Python
-cd frontend
-python -m http.server 8080
+##  Interface Administrateur
 
-# Avec Node.js (live-server)
-cd frontend
-npx live-server --port=8080
+### Accès Admin
+1. **Compte administrateur** requis (flag `isadmin = true` en BDD)
+2. **Accéder** à `/admin_dashboard.html`
+3. **Dashboard temps réel** avec WebSocket
 
-# Avec PHP
-cd frontend
-php -S localhost:8080
-```
+### Fonctionnalités Admin
+- **Statistiques live** : Joueurs connectés, parties actives
+- **Gestion des parties** : Voir détails, terminer de force
+- **Gestion des joueurs** : Déconnecter, bannir temporairement
+- **Journal d'activités** : Historique de toutes les actions
+- **Actions d'urgence** : Kick all players, End all games
 
-## 🎮 Utilisation
-
-### Pour jouer
-1. Accédez à `http://localhost:8080`
-2. Créez un compte ou connectez-vous
-3. Accédez au tableau de bord
-4. Créez une nouvelle partie ou rejoignez une partie existante
-
-### Pour administrer
-1. Connectez-vous avec un compte administrateur
-2. Accédez à `http://localhost:8080/admin_dashboard.html`
-3. Surveillez les parties et joueurs en temps réel
-4. Utilisez les outils d'administration selon vos besoins
-
-## 📊 Fonctionnalités du Journal d'Activités
-
-Le système de journal d'activités suit automatiquement :
-- ✅ **Connexions** des utilisateurs
-- ❌ **Déconnexions** des utilisateurs  
-- 🎮 **Débuts de parties** avec créateur et ID
-- 🏁 **Fins de parties** avec gagnant
-- ⚙️ **Actions administratives** (kicks, terminaisons forcées)
-
-## 🔐 Sécurité
-
-- **Mots de passe hashés** avec bcrypt
-- **Validation côté serveur** pour toutes les entrées
-- **Protection CORS** configurée
-- **Système de rôles** (utilisateur/administrateur)
-- **Validation des sessions** pour les actions sensibles
-
-## 🚀 Fonctionnalités Futures
-
-### 🧪 Modes de Jeu Spéciaux (Prévus)
-- **Mode Rapide** : 30 secondes par dessin
-- **Mode "Mot Complexe"** : uniquement des mots difficiles
-- **Mode Mystère** : dessiner un mot que vous ne connaissez pas
-
-### 🎨 Améliorations Graphiques
-- **Outils de dessin avancés** (brush patterns, textures)
-- **Animations** et effets visuels
-- **Thèmes personnalisables**
-
-### 📈 Statistiques Avancées
-- **Classements globaux**
-- **Badges et achievements**
-- **Historique détaillé** des performances
-
-## 📝 API Documentation
+##  Sécurité
 
 ### Authentification
-```typescript
-POST /api/login
-Body: { username: string, password: string }
-Response: { success: boolean, user: User }
+- **Hashage bcrypt** : Mots de passe sécurisés (salt + rounds)
+- **Sessions serveur** : Validation côté backend
+- **Validation stricte** : Contrôles d'entrée sur toutes les données
 
-POST /api/logout  
-Body: { username: string }
-Response: { success: boolean }
-```
+### Communications
+- **HTTPS obligatoire** : Certificats SSL/TLS
+- **WebSockets sécurisés** : WSS pour temps réel
+- **CORS configuré** : Protection contre les requêtes malveillantes
 
 ### Administration
-```typescript
-GET /api/admin/activity-log
-Response: Activity[]
+- **Rôles utilisateur** : Séparation user/admin
+- **Logs d'audit** : Traçabilité de toutes les actions admin
+- **Validation permissions** : Vérification des droits à chaque action
 
-GET /api/admin/stats
-Response: { activeGames: number, activePlayers: number, ... }
+---
 
-GET /api/admin/active-games
-Response: { success: boolean, games: Game[] }
 
-GET /api/admin/active-players
-Response: { success: boolean, players: Player[] }
-```
+**Développeur Principal** : FABRE Julien
 
-## 🐛 Dépannage
-
-### Problème de connexion WebSocket
-- Vérifiez que le port 3001 est libre
-- Assurez-vous que le firewall autorise les connexions WebSocket
-
-### Erreurs de base de données
-- Vérifiez la configuration dans le fichier .env
-- Assurez-vous que PostgreSQL est démarré
-- Vérifiez les permissions de l'utilisateur de base de données
-
-### Problèmes de CORS
-- Vérifiez que les domaines frontend et backend sont correctement configurés
-- Assurez-vous que les en-têtes CORS sont activés sur le serveur
-
-## 📄 License
-
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-
-## 👥 Équipe
-
-- **Développeur Principal** : FABRE Julien
+*Projet développé dans le cadre de l'apprentissage des technologies web modernes et de la programmation temps réel.*
