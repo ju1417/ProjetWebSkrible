@@ -94,7 +94,7 @@ Le jeu propose une interface de dessin complète avec chat intégré, un systèm
 - **Chat vocal** : Communication audio entre joueurs
 - **Modération automatique** : Détection de contenu inapproprié
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 Projet Skribble/
@@ -139,7 +139,7 @@ Le projet utilise **PostgreSQL** avec 5 tables principales :
 4. **`game_history`** - Historique détaillé des parties terminées
 5. **`activity_logs`** - Journal d'activités pour l'administration
 
-## ⚡ Automatisation avec tasks.json
+##  Automatisation avec tasks.json
 
 Le projet inclut une configuration VS Code pour automatiser le lancement :
 
