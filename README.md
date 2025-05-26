@@ -81,7 +81,6 @@ Le jeu propose une interface de dessin complète avec chat intégré, un systèm
 - **Configuration serveur** : Gestion des certificats HTTPS et WebSockets
 - **Base de données** : Setup PostgreSQL et migrations
 - **Variables d'environnement** : Configuration multi-environnements
-- **Monitoring** : Surveillance des performances en production
 
 ##  Fonctionnalités Sociales
 
