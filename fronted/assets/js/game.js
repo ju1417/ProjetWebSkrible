@@ -55,7 +55,21 @@ document.addEventListener('DOMContentLoaded', function() {
     myUsername = userData.username;
     console.log('👤 Joueur connecté:', myUsername);
     
-    // ✅ SOLUTION : Utiliser une clé spécifique à l'utilisateur
+    // ✅ AJOUT 1: Afficher le username dans le header
+    const userNameElement = document.getElementById('user-name');
+    if (userNameElement) {
+        userNameElement.textContent = myUsername;
+        console.log('✅ Username affiché dans le header:', myUsername);
+    } else {
+        // Si l'élément n'existe pas, le créer
+        const usernameDisplay = document.getElementById('username-display');
+        if (usernameDisplay) {
+            usernameDisplay.innerHTML = `Connecté en tant que: <strong id="user-name" style="color: #ffd700;">${myUsername}</strong>`;
+            console.log('✅ Élément username créé');
+        }
+    }
+    
+    // Utiliser une clé spécifique à l'utilisateur
     const storageKey = `gameSettings_${myUsername}`;
     console.log('🔍 Recherche paramètres avec clé:', storageKey);
     
@@ -89,14 +103,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // ✅ Nettoyer les paramètres APRÈS utilisation (avec la bonne clé)
+    // Nettoyer les paramètres APRÈS utilisation (avec la bonne clé)
     sessionStorage.removeItem(storageKey);
     console.log('🧹 Paramètres nettoyés pour', myUsername);
     
     // Afficher l'état final
     console.log(`🎯 État final - ${myUsername}: créateur=${isGameCreator}, rounds=${totalRounds}`);
     
-    // ... reste de l'initialisation ...
     initCanvas();
     setupEventListeners();
     connectWebSocket();
@@ -197,10 +210,8 @@ function handleServerMessage(message) {
         case 'gameState':
             updateGameState(message);
             
-            // ✅ NOUVEAU: Afficher qui est le créateur
             if (message.creator) {
                 console.log(`👑 Créateur de la partie: ${message.creator}`);
-                // Afficher un message uniquement lors de la première connexion
                 if (!document.querySelector('.creator-message')) {
                     const creatorMsg = document.createElement('div');
                     creatorMsg.className = 'creator-message';
@@ -211,12 +222,10 @@ function handleServerMessage(message) {
             
         case 'playerJoined':
             console.log('👥 Nouveau joueur:', message.player);
-            // Note: updateGameState gèrera la mise à jour de la liste
             break;
             
         case 'playerLeft':
             console.log('👋 Joueur parti:', message.username);
-            // Note: updateGameState gèrera la mise à jour de la liste
             break;
             
         case 'chat':
@@ -225,6 +234,28 @@ function handleServerMessage(message) {
             
         case 'draw':
             handleRemoteDrawing(message.drawData);
+            break;
+            
+        case 'clearCanvas':
+            console.log('🧹 Commande clearCanvas reçue du serveur');
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // Sauvegarder le nouvel état dans l'historique
+            saveToHistory();
+            break;
+
+        case 'undo':
+            console.log('↩️ Commande undo reçue du serveur');
+            if (history.length > 1) {
+                // Enlever l'état actuel
+                history.pop();
+                // Appliquer l'état précédent
+                const previousState = history[history.length - 1];
+                ctx.putImageData(previousState, 0, 0);
+                console.log('✅ Annulation appliquée depuis le serveur');
+            } else {
+                console.log('⚠️ Aucun état précédent à restaurer');
+            }
             break;
             
         case 'newRound':
@@ -261,7 +292,6 @@ function handleServerMessage(message) {
         case 'gameRestarting':
             addChatMessage('Système', message.message, true);
             
-            // Supprimer la popup de fin de jeu si elle existe
             if (message.closeGameOver) {
                 const existingGameOver = document.querySelector('.game-over-announcement');
                 if (existingGameOver) {
@@ -269,7 +299,6 @@ function handleServerMessage(message) {
                 }
             }
             
-            // Mettre à jour l'interface utilisateur pour la nouvelle partie
             clearCanvas();
             updatePlayersList(message.players);
             break;
@@ -277,16 +306,13 @@ function handleServerMessage(message) {
         case 'error':
             console.error('❌ Erreur du serveur:', message.message);
             
-            // ✅ AMÉLIORATION: Meilleure gestion des erreurs de connexion multiple
             if (message.message.includes('déjà connecté')) {
                 console.log('🔄 Connexion multiple détectée, nettoyage...');
                 
-                // Fermer cette connexion
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.close(1000, 'Connexion multiple');
                 }
                 
-                // Attendre un peu avant de potentiellement reconnecter
                 setTimeout(() => {
                     console.log('🔄 Tentative de reconnexion après nettoyage...');
                     if (!ws || ws.readyState === WebSocket.CLOSED) {
@@ -294,7 +320,7 @@ function handleServerMessage(message) {
                     }
                 }, 2000);
                 
-                return; // Important: ne pas afficher l'alerte
+                return;
             } else {
                 alert(message.message);
             }
@@ -340,6 +366,24 @@ function setupEventListeners() {
             sendMessage();
         }
     });
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function() {
+            console.log('🏠 Bouton retour cliqué');
+            
+            // Fermer la connexion WebSocket proprement
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close(1000, 'Retour volontaire au dashboard');
+                console.log('🔌 Connexion WebSocket fermée');
+            }
+            
+            // Rediriger vers le dashboard
+            window.location.href = 'dashboard.html';
+        });
+        console.log('✅ Event listener bouton retour ajouté');
+    } else {
+        console.error('❌ Bouton logout-btn non trouvé');
+    }
 }
 
 // Changer d'outil
@@ -559,18 +603,71 @@ function saveToHistory() {
 
 // Annuler la dernière action
 function undoLastAction() {
-    if (history.length > 1) {
-        history.pop(); // Enlever l'état actuel
-        const previousState = history[history.length - 1];
-        ctx.putImageData(previousState, 0, 0);
+    console.log('🔄 Bouton annuler cliqué');
+    
+    // Vérifier que c'est bien le dessinateur qui peut annuler
+    if (!isDrawer) {
+        console.log('❌ Seul le dessinateur peut annuler');
+        addChatMessage('Système', 'Seul le dessinateur peut annuler un trait.', true);
+        return;
+    }
+    
+    // Vérifier qu'il y a quelque chose à annuler
+    if (history.length <= 1) {
+        console.log('❌ Rien à annuler');
+        addChatMessage('Système', 'Rien à annuler.', true);
+        return;
+    }
+    
+    console.log(`📋 Historique avant annulation: ${history.length} états`);
+    
+    // Enlever l'état actuel de l'historique
+    history.pop();
+    
+    // Appliquer l'état précédent sur le canvas local
+    const previousState = history[history.length - 1];
+    ctx.putImageData(previousState, 0, 0);
+    
+    console.log(`✅ Annulation appliquée localement. Historique: ${history.length} états`);
+    
+    // Envoyer la commande d'annulation aux autres joueurs
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'undo'
+        }));
+        console.log('📤 Commande undo envoyée aux autres joueurs');
+    } else {
+        console.error('❌ WebSocket non connecté, impossible d\'envoyer la commande undo');
     }
 }
 
 // Effacer le canvas
 function clearCanvas() {
+    console.log('🗑️ Bouton effacer cliqué');
+    
+    // Vérifier que c'est bien le dessinateur qui peut effacer
+    if (!isDrawer) {
+        console.log('❌ Seul le dessinateur peut effacer');
+        addChatMessage('Système', 'Seul le dessinateur peut effacer le canvas.', true);
+        return;
+    }
+    
+    // Effacer le canvas localement
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     saveToHistory();
+    
+    console.log('✅ Canvas effacé localement');
+    
+    // Envoyer la commande d'effacement aux autres joueurs
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'clearCanvas'
+        }));
+        console.log('📤 Commande clearCanvas envoyée aux autres joueurs');
+    } else {
+        console.error('❌ WebSocket non connecté, impossible d\'envoyer la commande clearCanvas');
+    }
 }
 
 function displayWordForDrawer(word) {

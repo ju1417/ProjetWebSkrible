@@ -1,12 +1,4 @@
 /**
- * Module de gestion des WebSockets
- * 
- * Ce module fournit une interface pour gérer une connexion WebSocket,
- * avec des fonctions pour envoyer des messages, gérer la reconnexion,
- * et des callbacks pour les événements WebSocket.
- */
-
-/**
  * Initialise une connexion WebSocket
  * @param {string} url - L'URL du serveur WebSocket
  * @param {Object} callbacks - Les callbacks pour les événements WebSocket
