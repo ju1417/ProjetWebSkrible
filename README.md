@@ -134,10 +134,10 @@ Projet Skribble/
 Le projet utilise **PostgreSQL** avec 5 tables principales :
 
 1. **`users`** - Gestion des comptes utilisateurs et administrateurs
-2. **`games`** - Informations sur les parties (créateur, rounds, statut)
-3. **`game_players`** - Association joueurs/parties avec scores
-4. **`game_history`** - Historique détaillé des parties terminées
-5. **`activity_logs`** - Journal d'activités pour l'administration
+2. **`games`** - Partie dans lesquelle jouent les joueurs
+3. **`user_stats`** - Statistiques des joueurs au fil du temps
+4. **`words`** - Listes de mots aléatoire
+5. **`player_scores`** - Scores des parties des joueurs
 
 ##  Automatisation avec tasks.json
 
