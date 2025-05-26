@@ -132,10 +132,8 @@ function setupEventListeners() {
     const viewAllHistoryBtn = document.getElementById('view-all-history');
     if (viewAllHistoryBtn) {
         viewAllHistoryBtn.addEventListener('click', viewAllHistory);
-        console.log('✅ Écouteur historique ajouté');
-    } else {
-        console.error('❌ Bouton view-all-history non trouvé');
-    }
+        console.log(' Écouteur historique ajouté');
+    } 
 }
 
 // Fonction de déconnexion 

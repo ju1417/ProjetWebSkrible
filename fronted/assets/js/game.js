@@ -408,6 +408,46 @@ function setupEventListeners() {
     }
 }
 
+// Fonction pour envoyer les données de dessin
+function sendDrawData(drawData) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'draw',
+            drawData: drawData
+        }));
+    }
+}
+
+// Fonction pour gérer le dessin distant
+function handleRemoteDrawing(drawData) {
+    switch(drawData.type) {
+        case 'start':
+            // Préparer pour dessiner
+            lastX = drawData.x;
+            lastY = drawData.y;
+            break;
+        case 'draw':
+            // Dessiner sur le canvas
+            if (drawData.tool === 'eraser') {
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = drawData.size * 2;
+            } else {
+                ctx.strokeStyle = drawData.color;
+                ctx.lineWidth = drawData.size;
+            }
+            
+            ctx.beginPath();
+            ctx.moveTo(drawData.fromX, drawData.fromY);
+            ctx.lineTo(drawData.toX, drawData.toY);
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            break;
+        case 'end':
+            // Fin du dessin
+            break;
+    }
+}
+
 // Changer d'outil
 function setTool(tool) {
     currentTool = tool;
@@ -557,45 +597,6 @@ function endAction() {
     }
 }   
 
-// Fonction pour envoyer les données de dessin
-function sendDrawData(drawData) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-            type: 'draw',
-            drawData: drawData
-        }));
-    }
-}
-
-// Fonction pour gérer le dessin distant
-function handleRemoteDrawing(drawData) {
-    switch(drawData.type) {
-        case 'start':
-            // Préparer pour dessiner
-            lastX = drawData.x;
-            lastY = drawData.y;
-            break;
-        case 'draw':
-            // Dessiner sur le canvas
-            if (drawData.tool === 'eraser') {
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = drawData.size * 2;
-            } else {
-                ctx.strokeStyle = drawData.color;
-                ctx.lineWidth = drawData.size;
-            }
-            
-            ctx.beginPath();
-            ctx.moveTo(drawData.fromX, drawData.fromY);
-            ctx.lineTo(drawData.toX, drawData.toY);
-            ctx.lineCap = 'round';
-            ctx.stroke();
-            break;
-        case 'end':
-            // Fin du dessin
-            break;
-    }
-}
 
 // Fonction pour mettre à jour le timer
 function updateTimer(timeLeft) {

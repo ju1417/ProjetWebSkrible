@@ -17,9 +17,9 @@ function getConfig() {
   }
 }
 
-
 const CONFIG = getConfig();
 const API_URL = CONFIG.API_URL;
+const WS_URL = CONFIG.WS_URL;
 
 let currentAdmin = null;
 let adminSocket = null;
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupEventListeners();
     
     // Connecter le WebSocket admin
-    connectAdminWebSocket();
+    //connectAdminWebSocket();
     
     // Charger les données initiales
     loadAdminData();
@@ -247,7 +247,7 @@ async function loadAdminStats() {
 
 // Actualiser la liste des parties actives
 async function refreshActiveGames() {
-    console.log('🎮 Actualisation des parties actives...');
+    console.log(' Actualisation des parties actives...');
     
     const container = document.getElementById('active-games-container');
     if (!container) return;
@@ -293,10 +293,10 @@ async function refreshActiveGames() {
                 </div>
                 <div class="game-actions">
                     <button class="admin-btn" onclick="viewGameDetails(${game.id})">
-                        👁️ Voir
+                         Voir
                     </button>
                     <button class="admin-btn danger" onclick="endGame(${game.id})">
-                        🛑 Terminer
+                         Terminer
                     </button>
                 </div>
             </div>
@@ -351,14 +351,14 @@ async function refreshActivePlayers() {
                 </div>
                 <div class="player-actions">
                     <button class="admin-btn warning" onclick="kickPlayer('${player.socketId}', '${player.username}')">
-                        👢 Déconnecter
+                         Déconnecter
                     </button>
                 </div>
             </div>
         `).join('');
         
     } catch (error) {
-        console.error('❌ Erreur actualisation joueurs:', error);
+        console.error(' Erreur actualisation joueurs:', error);
         container.innerHTML = '<div class="no-data">Erreur de chargement</div>';
     }
 }
@@ -370,7 +370,7 @@ async function endGame(gameId) {
     }
     
     try {
-        console.log(`🛑 Tentative de terminer la partie #${gameId}...`);
+        console.log(` Tentative de terminer la partie #${gameId}...`);
         
         const response = await fetch(`${API_URL}/admin/games/${gameId}/end`, {
             method: 'POST',
@@ -390,7 +390,7 @@ async function endGame(gameId) {
         }
         
     } catch (error) {
-        console.error('❌ Erreur terminer partie:', error);
+        console.error(' Erreur terminer partie:', error);
         showError(error.message || 'Impossible de terminer la partie');
     }
 }
@@ -444,90 +444,6 @@ function viewGameDetails(gameId) {
     
     // Ajouter le style du modal
     const style = document.createElement('style');
-    style.textContent = `
-        .game-details-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            border-radius: 10px;
-            width: 80%;
-            max-width: 600px;
-            max-height: 80vh;
-            overflow-y: auto;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-        .modal-header {
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e5e7eb;
-            background: #dc2626;
-            color: white;
-            border-radius: 10px 10px 0 0;
-        }
-        .modal-body {
-            padding: 20px;
-        }
-        .close-modal {
-            font-size: 24px;
-            cursor: pointer;
-        }
-        .close-modal:hover {
-            color: #f1f1f1;
-        }
-        .loading {
-            text-align: center;
-            padding: 20px;
-            color: #6b7280;
-        }
-        .player-list {
-            margin-top: 15px;
-        }
-        .player-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .player-row:last-child {
-            border-bottom: none;
-        }
-        .player-position {
-            display: inline-block;
-            width: 25px;
-            height: 25px;
-            line-height: 25px;
-            text-align: center;
-            border-radius: 50%;
-            background: #3b82f6;
-            color: white;
-            margin-right: 10px;
-        }
-        .game-info-row {
-            display: flex;
-            margin-bottom: 10px;
-        }
-        .game-info-label {
-            font-weight: bold;
-            width: 120px;
-        }
-        .error {
-            color: #dc2626;
-            text-align: center;
-            padding: 20px;
-        }
-    `;
     document.head.appendChild(style);
     
     document.body.appendChild(modal);
