@@ -1,13 +1,37 @@
-import { serve } from "https://deno.land/std@0.206.0/http/server.ts";
 import { join } from "https://deno.land/std@0.206.0/path/mod.ts";
 import { contentType } from "https://deno.land/std@0.206.0/media_types/content_type.ts";
 
-const PORT = 8080;
+// ==================== CONFIGURATION ====================
+const HTTP_PORT = 8080;
+const HTTPS_PORT = 8443;
+const USE_HTTPS = true;
+
 // Le répertoire racine est maintenant le dossier "fronted"
 const ROOT_DIR = Deno.cwd();
-
 console.log(`Répertoire racine: ${ROOT_DIR}`);
 
+// ==================== CONFIGURATION HTTPS ====================
+let tlsOptions = null;
+
+if (USE_HTTPS) {
+  try {
+    // Lire les certificats (chemin absolu)
+    const certPath = "/home/julien/Bureau/IG3/Projet_Web/certs/cert.pem";
+    const keyPath = "/home/julien/Bureau/IG3/Projet_Web/certs/key.pem";
+    
+    tlsOptions = {
+      cert: await Deno.readTextFile(certPath),
+      key: await Deno.readTextFile(keyPath),
+    };
+    
+    console.log(`🔒 Certificats HTTPS chargés pour le frontend`);
+  } catch (error) {
+    console.error("❌ Erreur chargement certificats HTTPS:", error);
+    Deno.exit(1);
+  }
+}
+
+// ==================== GESTIONNAIRE DE REQUÊTES ====================
 async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   let filePath;
@@ -35,11 +59,21 @@ async function handler(req: Request): Promise<Response> {
     
     console.log(`Fichier trouvé! Type: ${contentType(ext) || "text/plain"}`);
     
-    return new Response(file.readable, {
-      headers: {
-        "Content-Type": contentType(ext) || "text/plain",
-      },
-    });
+    // Headers de sécurité pour HTTPS
+    const headers: Record<string, string> = {
+      "Content-Type": contentType(ext) || "text/plain",
+    };
+    
+    // Ajouter des headers de sécurité si HTTPS
+    if (USE_HTTPS && tlsOptions) {
+      headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+      headers["X-Content-Type-Options"] = "nosniff";
+      headers["X-Frame-Options"] = "DENY";
+      headers["X-XSS-Protection"] = "1; mode=block";
+    }
+    
+    return new Response(file.readable, { headers });
+    
   } catch (error) {
     console.error(`Erreur: ${error.message}`);
     
@@ -62,6 +96,57 @@ async function handler(req: Request): Promise<Response> {
   }
 }
 
-console.log(`Serveur frontend démarré sur http://localhost:${PORT}`);
-await serve(handler, { port: PORT });
+// ==================== SERVEUR HTTPS NATIF DENO ====================
+console.log("🚀 Démarrage du serveur frontend...");
 
+if (USE_HTTPS && tlsOptions) {
+  console.log(`🔒 Configuration serveur HTTPS sur port ${HTTPS_PORT}...`);
+  console.log(`💡 Pour accéder au jeu: https://localhost:${HTTPS_PORT}`);
+  
+  // ✅ SERVEUR HTTPS NATIF DENO (sans la fonction serve)
+  const server = Deno.listenTls({
+    port: HTTPS_PORT,
+    cert: tlsOptions.cert,
+    key: tlsOptions.key,
+  });
+  
+  console.log(`✅ Serveur HTTPS frontend démarré sur https://localhost:${HTTPS_PORT}`);
+  
+  // Boucle de traitement des connexions HTTPS
+  for await (const conn of server) {
+    (async () => {
+      const httpConn = Deno.serveHttp(conn);
+      for await (const requestEvent of httpConn) {
+        try {
+          const response = await handler(requestEvent.request);
+          await requestEvent.respondWith(response);
+        } catch (error) {
+          console.error("Erreur traitement requête:", error);
+          await requestEvent.respondWith(new Response("Erreur serveur", { status: 500 }));
+        }
+      }
+    })();
+  }
+  
+} else {
+  console.log(`🌐 Serveur frontend HTTP démarré sur http://localhost:${HTTP_PORT}`);
+  
+  // Serveur HTTP simple
+  const server = Deno.listen({ port: HTTP_PORT });
+  console.log(`✅ Serveur HTTP frontend démarré sur http://localhost:${HTTP_PORT}`);
+  
+  for await (const conn of server) {
+    (async () => {
+      const httpConn = Deno.serveHttp(conn);
+      for await (const requestEvent of httpConn) {
+        try {
+          const response = await handler(requestEvent.request);
+          await requestEvent.respondWith(response);
+        } catch (error) {
+          console.error("Erreur traitement requête:", error);
+          await requestEvent.respondWith(new Response("Erreur serveur", { status: 500 }));
+        }
+      }
+    })();
+  }
+}

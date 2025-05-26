@@ -1,6 +1,6 @@
 // Variables globales
 let currentUser = null;
-const API_URL = 'http://localhost:3000/api';
+const API_URL = 'https://localhost:3443/api';
 
 // Initialisation au chargement de la page - VERSION CORRIGÉE
 document.addEventListener('DOMContentLoaded', function() {

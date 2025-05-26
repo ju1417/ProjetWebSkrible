@@ -3,13 +3,42 @@
     import { Client } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
     import { hashPassword, verifyPassword } from "../utils/passwordUtils.ts";
 
+
     // ==================== CONFIGURATION ====================
 
-    // Charger les variables d'environnement
     const env = await dotenvConfig({ export: true });
+
     const PORT = parseInt(env.PORT || "3000");
-    const WS_PORT = 3001;
-    const FRONTEND_URL = env.FRONTEND_URL || "http://localhost:8080";
+    const WS_PORT = parseInt(env.WS_PORT || "3001");
+    const FRONTEND_URL = env.FRONTEND_URL || "http://localhost:8080"; // ✅ Défini ICI
+
+    // Configuration HTTPS
+    const HTTPS_PORT = parseInt(env.HTTPS_PORT || "3443");
+    const USE_HTTPS = true;
+
+
+    let tlsOptions = null;
+
+    if (USE_HTTPS) {
+      try {
+        // Lire les certificats depuis le dossier certs/ à la racine
+    const certPath = "/home/julien/Bureau/IG3/Projet_Web/certs/cert.pem";
+    const keyPath = "/home/julien/Bureau/IG3/Projet_Web/certs/key.pem";
+
+        tlsOptions = {
+          cert: await Deno.readTextFile(certPath),
+          key: await Deno.readTextFile(keyPath),
+        };
+
+        console.log(`🔒 Certificats HTTPS chargés pour le backend`);
+      } catch (error) {
+        console.error("❌ Erreur chargement certificats HTTPS:", error);
+        console.log("💡 Créez les certificats avec :");
+        console.log("   mkdir ../certs && cd ../certs");
+        console.log("   openssl req -x509 -newkey rsa:2048 -nodes -sha256 -subj '/CN=localhost' -keyout key.pem -out cert.pem -days 365");
+        tlsOptions = null;
+      }
+    }
 
     // Configuration PostgreSQL
     export const db = new Client({
@@ -79,10 +108,13 @@
 
     // Configuration CORS
     app.use(oakCors({
-    origin: FRONTEND_URL, // Plus sécurisé que "*"
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Admin-Username"], // Ajoutez X-Admin-Username ici
-    credentials: true
+      origin: [
+        FRONTEND_URL,                           // HTTP
+        "https://localhost:8443"                // HTTPS frontend
+      ],
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "X-Admin-Username"],
+      credentials: true
     }));
 
     // ==================== ROUTES D'AUTHENTIFICATION ====================
@@ -1092,7 +1124,10 @@
     
     try {
         // Obtenir un mot aléatoire
-        const response = await fetch(`http://localhost:${PORT}/api/random-word`);
+        const apiUrl = USE_HTTPS && tlsOptions 
+          ? `https://localhost:${HTTPS_PORT}/api/random-word`
+          : `http://localhost:${PORT}/api/random-word`;
+        const response = await fetch(apiUrl);
         const wordData = await response.json();
         
         gameRoom.currentWord = wordData.word;
@@ -1354,15 +1389,36 @@
     app.use(notFoundHandler);
 
     // ==================== DÉMARRAGE DES SERVEURS ====================
+    console.log("🚀 Démarrage des serveurs...");
 
-    app.addEventListener("listen", () => {
-    console.log(`✅ Serveur HTTP démarré sur http://localhost:${PORT}`);
-    });
-
-    console.log(`🔗 Serveur WebSocket démarré sur ws://localhost:${WS_PORT}`);
+    // Serveur WebSocket
+    console.log(`🔗 Serveur WebSocket sur ws://localhost:${WS_PORT}`);
     serve(handleWS, { port: WS_PORT });
 
-    await app.listen({ port: PORT });
+    // Serveur HTTP/HTTPS principal
+    if (USE_HTTPS && tlsOptions) {
+      console.log(`🔒 Serveur HTTPS sur https://localhost:${HTTPS_PORT}`);
+      console.log(`⚠️  Certificat auto-signé - acceptez l'avertissement du navigateur`);
+    
+      app.addEventListener("listen", () => {
+        console.log(`✅ Serveur HTTPS backend démarré sur https://localhost:${HTTPS_PORT}`);
+      });
+
+      await app.listen({ 
+        port: HTTPS_PORT, 
+        cert: tlsOptions.cert,
+        key: tlsOptions.key 
+      });
+    } else {
+      console.log(`🌐 Serveur HTTP sur http://localhost:${PORT}`);
+    
+      app.addEventListener("listen", () => {
+        console.log(`✅ Serveur HTTP backend démarré sur http://localhost:${PORT}`);
+      });
+
+      await app.listen({ port: PORT });
+    }
+
 
     // ==================== FONCTIONS POUR SAUVEGARDER LES PARTIES ====================
 

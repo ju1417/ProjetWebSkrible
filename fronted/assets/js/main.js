@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Configuration de l'API - URL corrigée
-    const API_URL = 'http://localhost:3000/api'; 
+    const API_URL = 'https://localhost:3443/api'; 
     const WS_URL = 'ws://localhost:3001';
     // Éléments de navigation
     const navHome = document.getElementById('nav-home');
