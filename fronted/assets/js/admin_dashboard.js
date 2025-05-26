@@ -17,8 +17,12 @@ function getConfig() {
   }
 }
 
+
 const CONFIG = getConfig();
 const API_URL = CONFIG.API_URL;
+
+
+let currentAdmin = null;
 
 // Initialisation au chargement de la page
 document.addEventListener('DOMContentLoaded', function() {
@@ -31,9 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Configurer les écouteurs d'événements
     setupEventListeners();
-    
-    // Connecter le WebSocket admin
-    connectAdminWebSocket();
+
     
     // Charger les données initiales
     loadAdminData();
@@ -112,79 +114,9 @@ function setupEventListeners() {
 function logout() {
     console.log('🚪 Déconnexion admin...');
     if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-        // Fermer la connexion WebSocket
-        if (adminSocket) {
-            adminSocket.close();
-        }
-        
-        // Nettoyer le stockage
         sessionStorage.clear();
         localStorage.removeItem('currentUser');
         window.location.href = 'index.html';
-    }
-}
-
-// Connexion WebSocket pour surveiller les parties en temps réel
-function connectAdminWebSocket() {
-    try {
-        console.log('🔌 Connexion WebSocket admin...');
-        adminSocket = new WebSocket(WS_URL);
-        
-        adminSocket.onopen = () => {
-            console.log('✅ WebSocket admin connecté');
-            // S'identifier comme admin
-            adminSocket.send(JSON.stringify({
-                type: 'adminConnect',
-                adminId: currentAdmin.id,
-                username: currentAdmin.username
-            }));
-        };
-        
-        adminSocket.onmessage = (event) => {
-            handleAdminWebSocketMessage(JSON.parse(event.data));
-        };
-        
-        adminSocket.onclose = () => {
-            console.log('🔌 WebSocket admin déconnecté');
-            // Reconnecter après 5 secondes
-            setTimeout(connectAdminWebSocket, 5000);
-        };
-        
-        adminSocket.onerror = (error) => {
-            console.error('❌ Erreur WebSocket admin:', error);
-        };
-        
-    } catch (error) {
-        console.error('❌ Erreur connexion WebSocket:', error);
-    }
-}
-
-// Gérer les messages WebSocket
-function handleAdminWebSocketMessage(message) {
-    switch (message.type) {
-        case 'adminConnected':
-            console.log('✅ Admin confirmé par le serveur:', message.message);
-            break;
-        case 'gameUpdate':
-            refreshActiveGames();
-            break;
-        case 'playerUpdate':
-            refreshActivePlayers();
-            break;
-        case 'systemUpdate':
-            loadAdminData();
-            break;
-        case 'adminAction':
-            // Notification d'une action admin
-            showSuccess(message.message || 'Action effectuée avec succès');
-            refreshActiveGames();
-            refreshActivePlayers();
-            break;
-        case 'error':
-            showError(message.message || 'Erreur lors de l\'opération');
-            break;
-        default:
-            console.log('📨 Message admin non géré:', message.type);
     }
 }
 
@@ -244,60 +176,56 @@ async function loadAdminStats() {
 // Actualiser la liste des parties actives
 async function refreshActiveGames() {
     console.log('🎮 Actualisation des parties actives...');
-    
     const container = document.getElementById('active-games-container');
     if (!container) return;
-    
+
     try {
         const response = await fetch(`${API_URL}/admin/active-games`, {
             headers: {
                 'X-Admin-Username': currentAdmin.username
             }
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (!data.success || !data.games) {
             throw new Error('Format de réponse invalide');
         }
-        
+
         const activeGames = data.games;
-        
+
         if (activeGames.length === 0) {
             container.innerHTML = '<div class="no-data">Aucune partie active</div>';
             return;
         }
+        container.innerHTML = ''; 
         
-        container.innerHTML = activeGames.map(game => `
-            <div class="game-item">
-                <div class="game-info">
-                    <strong>Partie #${game.id}</strong>
-                    <br>
-                    <span class="game-status status-${game.status}">
-                        ${getStatusText(game.status)}
-                    </span>
-                    <br>
-                    Créateur: ${game.creator} | 
-                    Joueurs: ${Array.isArray(game.players) ? game.players.length : 0} |
-                    Round: ${game.currentRound}/${game.totalRounds}
-                    <br>
-                    <small>Démarrée: ${formatTime(new Date(game.startTime))}</small>
-                </div>
-                <div class="game-actions">
-                    <button class="admin-btn" onclick="viewGameDetails(${game.id})">
-                        👁️ Voir
-                    </button>
-                    <button class="admin-btn danger" onclick="endGame(${game.id})">
-                        🛑 Terminer
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
+        activeGames.forEach(game => {
+            // Cloner le template
+            const template = document.getElementById('game-item-template');
+            const clone = template.content.cloneNode(true);
+            
+            // Remplir les données
+            clone.querySelector('.game-title').textContent = `Partie #${game.id}`;
+            clone.querySelector('.game-status').textContent = getStatusText(game.status);
+            clone.querySelector('.game-status').className = `game-status status-${game.status}`;
+            clone.querySelector('.game-details').textContent = 
+                `Créateur: ${game.creator} | Joueurs: ${Array.isArray(game.players) ? game.players.length : 0} | Round: ${game.currentRound}/${game.totalRounds}`;
+            clone.querySelector('.game-time').textContent = 
+                `Démarrée: ${formatTime(new Date(game.startTime))}`;
+            
+            // Ajouter les événements
+            clone.querySelector('.view-btn').addEventListener('click', () => viewGameDetails(game.id));
+            clone.querySelector('.end-btn').addEventListener('click', () => endGame(game.id));
+            
+            // Ajouter au conteneur
+            container.appendChild(clone);
+        });
+
     } catch (error) {
         console.error('❌ Erreur actualisation parties:', error);
         container.innerHTML = '<div class="no-data">Erreur de chargement</div>';
@@ -648,59 +576,7 @@ async function loadTodayGames() {
         
         // Ajouter des styles spécifiques
         const style = document.createElement('style');
-        style.textContent = `
-            .recent-games-list {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                gap: 1rem;
-                margin-top: 1rem;
-            }
-            
-            .game-history-item {
-                background: white;
-                border-radius: 8px;
-                padding: 1rem;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                border: 1px solid #e5e7eb;
-                transition: transform 0.2s;
-            }
-            
-            .game-history-item:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            }
-            
-            .game-header {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 0.5rem;
-                border-bottom: 1px solid #f3f4f6;
-                padding-bottom: 0.5rem;
-            }
-            
-            .game-time {
-                color: #6b7280;
-                font-size: 0.875rem;
-            }
-            
-            .game-body {
-                font-size: 0.875rem;
-                margin-bottom: 0.5rem;
-            }
-            
-            .game-footer {
-                display: flex;
-                justify-content: flex-end;
-                margin-top: 0.5rem;
-                padding-top: 0.5rem;
-                border-top: 1px solid #f3f4f6;
-            }
-            
-            .admin-btn.small {
-                padding: 0.25rem 0.5rem;
-                font-size: 0.75rem;
-            }
-        `;
+
         document.head.appendChild(style);
         
     } catch (error) {
@@ -927,7 +803,7 @@ function getStatusText(status) {
     return statusMap[status] || status;
 }
 
-function formatTime(date) {
+function formatTime(date) { 
     // Version sécurisée qui vérifie si l'input est bien une Date
     if (!(date instanceof Date) || isNaN(date.getTime())) {
         return "À l'instant";
@@ -935,7 +811,7 @@ function formatTime(date) {
     
     const now = new Date();
     const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
+    const diffMins = Math.floor(diffMs / 60000); // Convertir en minutes
     
     if (diffMins < 1) return 'À l\'instant';
     if (diffMins < 60) return `Il y a ${diffMins}min`;
@@ -1028,7 +904,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log("Ajout de l'écouteur d'événement au bouton de déconnexion");
     logoutBtn.addEventListener('click', logout);
   } else {
-    console.error("❌ Bouton de déconnexion non trouvé dans le DOM");
+    console.error(" Bouton de déconnexion non trouvé dans le DOM");
   }
   
   // Actualiser le journal d'activités
@@ -1037,11 +913,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Fonction pour afficher le journal d'activités
 function refreshActivityLog() {
-    console.log("📋 Actualisation du journal d'activités...");
+    console.log(" Actualisation du journal d'activités...");
     
     const activityContainer = document.getElementById('activity-log-container');
     if (!activityContainer) {
-        console.error("❌ Container d'activités non trouvé");
+        console.error(" Container d'activités non trouvé");
         return;
     }
     
@@ -1061,9 +937,9 @@ function refreshActivityLog() {
         return response.json();
     })
     .then(data => {
-        console.log("📊 Données activités reçues:", data);
-        console.log("📊 Type des données:", typeof data);
-        console.log("📊 Est un tableau:", Array.isArray(data));
+        console.log(" Données activités reçues:", data);
+        console.log(" Type des données:", typeof data);
+        console.log(" Est un tableau:", Array.isArray(data));
         
         // Ton backend retourne directement le tableau activityLog
         if (Array.isArray(data)) {
@@ -1072,12 +948,12 @@ function refreshActivityLog() {
             // Au cas où tu changes le format plus tard
             displayActivities(activityContainer, data.activities);
         } else {
-            console.error("❌ Format de données inattendu:", data);
+            console.error(" Format de données inattendu:", data);
             throw new Error('Format de données incorrect');
         }
     })
     .catch(error => {
-        console.error('❌ Erreur chargement activités:', error);
+        console.error(' Erreur chargement activités:', error);
         activityContainer.innerHTML = `<div class="error">Erreur: ${error.message}</div>`;
         
         // Afficher des données de test après 2 secondes

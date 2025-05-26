@@ -70,9 +70,9 @@ interface GameRoom {
 // Connexion base de données
 try {
     await db.connect();
-    console.log("✅ Base de données connectée");
+    console.log(" Base de données connectée");
 } catch (error) {
-    console.error("❌ Erreur connexion DB:", error);
+    console.error(" Erreur connexion DB:", error);
 }
 
 // Variables globales
@@ -161,7 +161,7 @@ router.post("/api/login", async (ctx) => {
     try {
         const { username, password } = await ctx.request.body.json();
         
-        if (!username || !password) {
+        if (!username || !password) { // Vérification des champs requis
             ctx.response.status = 400;
             ctx.response.body = { error: "Nom d'utilisateur et mot de passe requis" };
             return;
@@ -1336,19 +1336,19 @@ async function updateUserStats(sortedPlayers: Player[]) {
             }
             
         } catch (error) {
-            console.error(`❌ Erreur mise à jour stats pour ${player.username}:`, error);
+            console.error(` Erreur mise à jour stats pour ${player.username}:`, error);
         }
     }
 }
 
 // Démarrage des serveurs
-console.log("🚀 Démarrage des serveurs...");
+console.log(" Démarrage des serveurs...");
 
 serve(handleWS, { port: WS_PORT });
 
 if (USE_HTTPS && tlsOptions) {
     app.addEventListener("listen", () => {
-        console.log(`✅ Serveur HTTPS backend démarré sur https://localhost:${HTTPS_PORT}`);
+        console.log(` Serveur HTTPS backend démarré sur https://localhost:${HTTPS_PORT}`);
     });
 
     await app.listen({ 
@@ -1358,7 +1358,7 @@ if (USE_HTTPS && tlsOptions) {
     });
 } else {
     app.addEventListener("listen", () => {
-        console.log(`✅ Serveur HTTP backend démarré sur http://localhost:${PORT}`);
+        console.log(` Serveur HTTP backend démarré sur http://localhost:${PORT}`);
     });
 
     await app.listen({ port: PORT });

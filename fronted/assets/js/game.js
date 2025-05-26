@@ -75,13 +75,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // Récupérer le nom d'utilisateur depuis localStorage
     const userData = JSON.parse(currentUser);
     myUsername = userData.username;
-    console.log('👤 Joueur connecté:', myUsername);
+    console.log(' Joueur connecté:', myUsername);
     
     // ✅ AJOUT 1: Afficher le username dans le header
     const userNameElement = document.getElementById('user-name');
     if (userNameElement) {
         userNameElement.textContent = myUsername;
-        console.log('✅ Username affiché dans le header:', myUsername);
+        console.log(' Username affiché dans le header:', myUsername);
     } else {
         // Si l'élément n'existe pas, le créer
         const usernameDisplay = document.getElementById('username-display');
@@ -93,22 +93,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Utiliser une clé spécifique à l'utilisateur
     const storageKey = `gameSettings_${myUsername}`;
-    console.log('🔍 Recherche paramètres avec clé:', storageKey);
+    console.log(' Recherche paramètres avec clé:', storageKey);
     
     // Vérifier TOUTES les clés pour débogage
-    console.log('📱 SessionStorage - Toutes les clés:', Object.keys(sessionStorage));
+    console.log(' SessionStorage - Toutes les clés:', Object.keys(sessionStorage));
     
     // Récupérer les paramètres spécifiques à cet utilisateur
     const gameSettingsRaw = sessionStorage.getItem(storageKey);
-    console.log('📱 SessionStorage pour', myUsername, ':', gameSettingsRaw);
+    console.log(' SessionStorage pour', myUsername, ':', gameSettingsRaw);
     
     // Parser les paramètres
     const gameSettings = JSON.parse(gameSettingsRaw || '{}');
-    console.log('🎮 Paramètres reçus:', gameSettings);
+    console.log(' Paramètres reçus:', gameSettings);
     
     // VÉRIFICATION DE SÉCURITÉ : Les paramètres appartiennent-ils au bon utilisateur ?
     if (gameSettings.username && gameSettings.username !== myUsername) {
-        console.error('🚨 ERREUR: Paramètres pour', gameSettings.username, 'mais connecté comme', myUsername);
+        console.error(' ERREUR: Paramètres pour', gameSettings.username, 'mais connecté comme', myUsername);
         // Utiliser des valeurs par défaut sécurisées
         isGameCreator = false;
         totalRounds = 3;
@@ -117,20 +117,20 @@ document.addEventListener('DOMContentLoaded', function() {
         if (gameSettings.isGameCreator === true) {
             isGameCreator = true;
             totalRounds = gameSettings.totalRounds || 3;
-            console.log(`👑 ${myUsername} va créer une nouvelle partie avec ${totalRounds} rounds`);
+            console.log(` ${myUsername} va créer une nouvelle partie avec ${totalRounds} rounds`);
         } else {
             isGameCreator = false;
             totalRounds = 3;
-            console.log(`👤 ${myUsername} va rejoindre une partie existante`);
+            console.log(` ${myUsername} va rejoindre une partie existante`);
         }
     }
     
     // Nettoyer les paramètres APRÈS utilisation (avec la bonne clé)
     sessionStorage.removeItem(storageKey);
-    console.log('🧹 Paramètres nettoyés pour', myUsername);
+    console.log(' Paramètres nettoyés pour', myUsername);
     
     // Afficher l'état final
-    console.log(`🎯 État final - ${myUsername}: créateur=${isGameCreator}, rounds=${totalRounds}`);
+    console.log(` État final - ${myUsername}: créateur=${isGameCreator}, rounds=${totalRounds}`);
     
     initCanvas();
     setupEventListeners();
@@ -142,19 +142,19 @@ document.addEventListener('DOMContentLoaded', function() {
 function connectWebSocket() {
     // Éviter les connexions multiples simultanées
     if (isConnecting) {
-        console.log('⚠️ Connexion déjà en cours');
+        console.log(' Connexion déjà en cours');
         return;
     }
     
     // Si une connexion existe et est ouverte, ne pas reconnecter
     if (ws && ws.readyState === WebSocket.OPEN) {
-        console.log('⚠️ Connexion déjà établie');
+        console.log(' Connexion déjà établie');
         return;
     }
     
     // Fermer proprement l'ancienne connexion si elle existe
     if (ws && ws.readyState !== WebSocket.CLOSED) {
-        console.log('🔌 Fermeture ancienne connexion...');
+        console.log(' Fermeture ancienne connexion...');
         ws.onclose = null; // Empêcher la reconnexion automatique
         ws.close();
     }
@@ -167,11 +167,11 @@ function connectWebSocket() {
         reconnectionTimeoutId = null;
     }
     
-    console.log('🔌 Tentative de connexion WebSocket...');
+    console.log(' Tentative de connexion WebSocket...');
     ws = new WebSocket('ws://localhost:3001');
     
     ws.onopen = () => {
-        console.log('✅ Connecté au serveur WebSocket');
+        console.log(' Connecté au serveur WebSocket');
         isConnecting = false;
         
         // Envoyer un message pour rejoindre le jeu
@@ -182,7 +182,7 @@ function connectWebSocket() {
             totalRounds: isGameCreator ? totalRounds : undefined
         };
         
-        console.log('📤 Envoi message join:', joinMessage);
+        console.log(' Envoi message join:', joinMessage);
         ws.send(JSON.stringify(joinMessage));
     };
 
@@ -191,23 +191,23 @@ function connectWebSocket() {
             const message = JSON.parse(event.data);
             handleServerMessage(message);
         } catch (error) {
-            console.error('❌ Erreur parsing message:', error);
+            console.error(' Erreur parsing message:', error);
         }
     };
     
     ws.onerror = (error) => {
-        console.error('❌ Erreur WebSocket:', error);
+        console.error(' Erreur WebSocket:', error);
         isConnecting = false;
     };
     
     ws.onclose = (event) => {
-        console.log('🔌 Connexion WebSocket fermée', event.code, event.reason);
+        console.log(' Connexion WebSocket fermée', event.code, event.reason);
         isConnecting = false;
         
         // Ne reconnecter que si la fermeture n'était pas intentionnelle
         // et qu'on n'a pas d'erreur de connexion multiple
         if (event.code !== 1000 && event.code !== 1001 && event.code !== 1006) {
-            console.log('🔄 Tentative de reconnexion dans 3 secondes...');
+            console.log(' Tentative de reconnexion dans 3 secondes...');
             addChatMessage('Système', 'Connexion perdue. Tentative de reconnexion...', true);
             
             reconnectionTimeoutId = setTimeout(() => {
@@ -226,14 +226,14 @@ function connectWebSocket() {
 
 // Gestionnaire des messages du serveur
 function handleServerMessage(message) {
-    console.log('📨 Message reçu du serveur:', message);
+    console.log(' Message reçu du serveur:', message);
     
     switch(message.type) {
         case 'gameState':
             updateGameState(message);
             
             if (message.creator) {
-                console.log(`👑 Créateur de la partie: ${message.creator}`);
+                console.log(` Créateur de la partie: ${message.creator}`);
                 if (!document.querySelector('.creator-message')) {
                     const creatorMsg = document.createElement('div');
                     creatorMsg.className = 'creator-message';
@@ -243,11 +243,11 @@ function handleServerMessage(message) {
             break;
             
         case 'playerJoined':
-            console.log('👥 Nouveau joueur:', message.player);
+            console.log(' Nouveau joueur:', message.player);
             break;
             
         case 'playerLeft':
-            console.log('👋 Joueur parti:', message.username);
+            console.log(' Joueur parti:', message.username);
             break;
             
         case 'chat':
@@ -259,7 +259,7 @@ function handleServerMessage(message) {
             break;
             
         case 'clearCanvas':
-            console.log('🧹 Commande clearCanvas reçue du serveur');
+            console.log(' Commande clearCanvas reçue du serveur');
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             // Sauvegarder le nouvel état dans l'historique
@@ -267,16 +267,16 @@ function handleServerMessage(message) {
             break;
 
         case 'undo':
-            console.log('↩️ Commande undo reçue du serveur');
+            console.log('↩ Commande undo reçue du serveur');
             if (history.length > 1) {
                 // Enlever l'état actuel
                 history.pop();
                 // Appliquer l'état précédent
                 const previousState = history[history.length - 1];
                 ctx.putImageData(previousState, 0, 0);
-                console.log('✅ Annulation appliquée depuis le serveur');
+                console.log(' Annulation appliquée depuis le serveur');
             } else {
-                console.log('⚠️ Aucun état précédent à restaurer');
+                console.log(' Aucun état précédent à restaurer');
             }
             break;
             
@@ -326,17 +326,17 @@ function handleServerMessage(message) {
             break;
             
         case 'error':
-            console.error('❌ Erreur du serveur:', message.message);
+            console.error(' Erreur du serveur:', message.message);
             
             if (message.message.includes('déjà connecté')) {
-                console.log('🔄 Connexion multiple détectée, nettoyage...');
+                console.log(' Connexion multiple détectée, nettoyage...');
                 
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.close(1000, 'Connexion multiple');
                 }
                 
                 setTimeout(() => {
-                    console.log('🔄 Tentative de reconnexion après nettoyage...');
+                    console.log(' Tentative de reconnexion après nettoyage...');
                     if (!ws || ws.readyState === WebSocket.CLOSED) {
                         connectWebSocket();
                     }
@@ -349,7 +349,7 @@ function handleServerMessage(message) {
             break;
             
         default:
-            console.log('❓ Type de message non géré:', message.type);
+            console.log(' Type de message non géré:', message.type);
     }
 }
 
@@ -391,12 +391,12 @@ function setupEventListeners() {
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function() {
-            console.log('🏠 Bouton retour cliqué');
+            console.log(' Bouton retour cliqué');
             
             // Fermer la connexion WebSocket proprement
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.close(1000, 'Retour volontaire au dashboard');
-                console.log('🔌 Connexion WebSocket fermée');
+                console.log(' Connexion WebSocket fermée');
             }
             
             // Rediriger vers le dashboard
