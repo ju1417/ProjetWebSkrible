@@ -1,7 +1,7 @@
 import { join } from "https://deno.land/std@0.206.0/path/mod.ts";
 import { contentType } from "https://deno.land/std@0.206.0/media_types/content_type.ts";
 
-// ==================== CONFIGURATION ====================
+// Configuration des ports
 const HTTP_PORT = 8080;
 const HTTPS_PORT = 8443;
 const USE_HTTPS = true;
@@ -10,7 +10,7 @@ const USE_HTTPS = true;
 const ROOT_DIR = Deno.cwd();
 console.log(`Répertoire racine: ${ROOT_DIR}`);
 
-// ==================== CONFIGURATION HTTPS ====================
+// Configuration HTTPS 
 let tlsOptions = null;
 
 if (USE_HTTPS) {
@@ -31,7 +31,7 @@ if (USE_HTTPS) {
   }
 }
 
-// ==================== GESTIONNAIRE DE REQUÊTES ====================
+// Gestionnaire de requêtes
 async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   let filePath;
@@ -96,7 +96,7 @@ async function handler(req: Request): Promise<Response> {
   }
 }
 
-// ==================== SERVEUR HTTPS NATIF DENO ====================
+// Serveur HTTP/HTTPS
 console.log(" Démarrage du serveur frontend...");
 
 if (USE_HTTPS && tlsOptions) {
