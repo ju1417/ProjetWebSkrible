@@ -1,7 +1,27 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Configuration de l'API - URL corrigée
-    const API_URL = 'https://localhost:3443/api'; 
-    const WS_URL = 'ws://localhost:3001';
+
+    // Configuration automatique des URLs
+    function getConfig() {
+      const hostname = window.location.hostname;
+      const isProduction = hostname.includes('cluster-ig3.igpolytech.fr');
+    
+      if (isProduction) {
+        return {
+          API_URL: 'https://skribble-julien-api.cluster-ig3.igpolytech.fr/api',
+          WS_URL: 'wss://skribble-julien-api.cluster-ig3.igpolytech.fr'
+        };
+      } else {
+        const isHTTPS = window.location.protocol === 'https:';
+        return {
+          API_URL: isHTTPS ? 'https://localhost:3443/api' : 'http://localhost:3000/api',
+          WS_URL: isHTTPS ? 'wss://localhost:3001' : 'ws://localhost:3001'
+        };
+      }
+    }
+
+    const CONFIG = getConfig();
+    const API_URL = CONFIG.API_URL;
+    
     // Éléments de navigation
     const navHome = document.getElementById('nav-home');
     const navLogin = document.getElementById('nav-login');

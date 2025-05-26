@@ -24,9 +24,9 @@ if (USE_HTTPS) {
       key: await Deno.readTextFile(keyPath),
     };
     
-    console.log(`🔒 Certificats HTTPS chargés pour le frontend`);
+    console.log(`Certificats HTTPS chargés pour le frontend`);
   } catch (error) {
-    console.error("❌ Erreur chargement certificats HTTPS:", error);
+    console.error(" Erreur chargement certificats HTTPS:", error);
     Deno.exit(1);
   }
 }
@@ -97,20 +97,18 @@ async function handler(req: Request): Promise<Response> {
 }
 
 // ==================== SERVEUR HTTPS NATIF DENO ====================
-console.log("🚀 Démarrage du serveur frontend...");
+console.log(" Démarrage du serveur frontend...");
 
 if (USE_HTTPS && tlsOptions) {
-  console.log(`🔒 Configuration serveur HTTPS sur port ${HTTPS_PORT}...`);
-  console.log(`💡 Pour accéder au jeu: https://localhost:${HTTPS_PORT}`);
-  
-  // ✅ SERVEUR HTTPS NATIF DENO (sans la fonction serve)
+  console.log(` Configuration serveur HTTPS sur port ${HTTPS_PORT}...`);
+  console.log(` Pour accéder au jeu: https://localhost:${HTTPS_PORT}`);
   const server = Deno.listenTls({
     port: HTTPS_PORT,
     cert: tlsOptions.cert,
     key: tlsOptions.key,
   });
   
-  console.log(`✅ Serveur HTTPS frontend démarré sur https://localhost:${HTTPS_PORT}`);
+  console.log(` Serveur HTTPS frontend démarré sur https://localhost:${HTTPS_PORT}`);
   
   // Boucle de traitement des connexions HTTPS
   for await (const conn of server) {
@@ -129,11 +127,11 @@ if (USE_HTTPS && tlsOptions) {
   }
   
 } else {
-  console.log(`🌐 Serveur frontend HTTP démarré sur http://localhost:${HTTP_PORT}`);
+  console.log(` Serveur frontend HTTP démarré sur http://localhost:${HTTP_PORT}`);
   
   // Serveur HTTP simple
   const server = Deno.listen({ port: HTTP_PORT });
-  console.log(`✅ Serveur HTTP frontend démarré sur http://localhost:${HTTP_PORT}`);
+  console.log(` Serveur HTTP frontend démarré sur http://localhost:${HTTP_PORT}`);
   
   for await (const conn of server) {
     (async () => {
